@@ -2,7 +2,11 @@
 
 ## Actual execution status
 
-Validation is in progress on the development branch. This section will be updated with observed results before delivery. No production installation has been performed.
+The 11 framework-independent tests and Python compilation were executed successfully locally on Python 3.12.14. Package construction, packaged assets, the exact Docker image build and NetBox integration are checked by CI; consult the linked run for the tested commit and its actual conclusion:
+
+[Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
+
+The automated suite contains 11 unit tests and 19 NetBox integration tests. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Full Docker-stack startup and browser visual checks have not been performed. No production installation has been performed.
 
 ## Local unit tests
 
@@ -18,9 +22,9 @@ These cover dimensions, bounds, touching/overlapping intervals, multiple lanes, 
 
 ## NetBox integration tests
 
-GitHub Actions checks out exact NetBox **4.7.5**, installs its dependencies and this plugin, and uses isolated PostgreSQL 18 and Redis 8. It checks Django configuration, migration drift/application, static collection and `netbox_vertical_pdu.tests`.
+GitHub Actions checks out exact NetBox **4.7.5**, installs its dependencies and this plugin, and uses isolated PostgreSQL 18 and Redis 8. It checks Django configuration, migration drift/application, static collection and `netbox_vertical_pdu.tests`. The test configuration clones the already-migrated disposable `netbox` database to avoid replaying the core migration history twice; migrate the base database first as shown below.
 
-Coverage includes tab/URL registration, rendering, links, CRUD, face selection, overlap/rack/type validation, stale placements, anonymous access, rack/device/placement/outlet constraints, denied writes, constrained-edit rollback, CSRF and escaped/localized SVG output.
+Coverage includes tab/URL registration, rendering, links, CRUD, event serialization, face selection, overlap/rack/type validation, stale placements, anonymous access, independent rack/device/placement/outlet constraints, denied writes, constrained-add/edit rollback, CSRF and escaped/localized SVG output.
 
 Reproduce in a disposable NetBox 4.7.5 checkout with its test database and Redis configured:
 
