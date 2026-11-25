@@ -1,0 +1,10 @@
+{% extends 'dcim/rack/base.html' %}
+{% block content %}
+<h2>Vertical device placement</h2>
+<form method="post" class="card card-body">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <div><button class="btn btn-primary" type="submit">Save placement</button>
+  <a class="btn btn-outline-secondary" href="{% url 'dcim:rack_vertical_pdu' pk=object.pk %}">Cancel</a></div>
+</form>
+{% endblock %}

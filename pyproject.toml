@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-vertical-pdu"
+version = "0.1.0"
+description = "Native NetBox rack elevations with vertical 0U devices"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+
+[tool.setuptools.packages.find]
+include = ["netbox_vertical_pdu*"]
+
+[tool.setuptools.package-data]
+netbox_vertical_pdu = ["templates/**/*.html", "static/**/*.css"]

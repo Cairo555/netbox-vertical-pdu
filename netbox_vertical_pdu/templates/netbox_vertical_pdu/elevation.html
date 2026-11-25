@@ -1,0 +1,53 @@
+{% extends 'dcim/rack/base.html' %}
+{% load static l10n %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'netbox_vertical_pdu/elevation.css' %}">
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn {% if face == 'front' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?face=front">Front</a>
+  <a class="btn {% if face == 'rear' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?face=rear">Rear</a>
+  {% if can_add %}<a class="btn btn-success" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_add' rack_pk=object.pk %}">Add vertical device</a>{% endif %}
+</div>
+<p>Left and right are as viewed from the selected face. Lane 1 is closest to the rack. Outlet counts include only outlets you may view.</p>
+<p><span class="vpdu-key vpdu-used">■ Occupied</span> <span class="vpdu-key vpdu-free">□ Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
+<div class="vpdu-scroll card p-3">
+{% localize off %}
+<svg class="vpdu-scene" xmlns="http://www.w3.org/2000/svg" width="{{ scene.width }}" height="{{ scene.height }}" viewBox="0 0 {{ scene.width }} {{ scene.height }}" role="img" aria-labelledby="vpdu-title">
+  <title id="vpdu-title">{{ object }} — {{ face }} enhanced rack elevation</title>
+  <rect class="vpdu-rack" x="{{ scene.rack_x }}" y="40" width="{{ scene.rack_width }}" height="{{ scene.rack_height }}"/>
+  {% for unit in scene.units %}
+  <svg x="{{ scene.rack_x }}" y="{{ unit.y }}" width="430" height="28"><path class="vpdu-grid" d="M0 0 H430"/><text x="5" y="20" class="vpdu-text">{{ unit.label }}</text></svg>
+  {% endfor %}
+  {% for row in scene.devices %}
+  <a href="{{ row.device.get_absolute_url }}" aria-label="{{ row.device }}">
+    <title>{{ row.device }}</title>
+    <rect class="vpdu-device" x="{{ row.x }}" y="{{ row.y }}" width="380" height="{{ row.height }}"/>
+    <svg x="{{ row.x }}" y="{{ row.y }}" width="380" height="{{ row.height }}"><text class="vpdu-text" x="6" y="12">{{ row.device }}</text></svg>
+  </a>
+  {% endfor %}
+  {% for row in scene.pdus %}
+  <a href="{{ row.device.get_absolute_url }}" aria-label="{{ row.device }}">
+    <title>{{ row.device }} — {{ row.placement.get_side_display }} lane {{ row.placement.lane }}</title>
+    <rect class="vpdu-device" x="{{ row.x }}" y="{{ row.y }}" width="130" height="{{ row.height }}" rx="3"/>
+    <svg x="{{ row.x }}" y="{{ row.y }}" width="130" height="{{ row.height }}"><text class="vpdu-text" x="6" y="18">{{ row.device }}</text></svg>
+    {% for outlet in row.outlets %}
+      <rect class="{% if outlet.occupied %}vpdu-used{% else %}vpdu-free{% endif %}" x="{{ outlet.x }}" y="{{ outlet.y }}" width="14" height="12" rx="2"><title>{{ outlet.name }}: {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</title></rect>
+    {% endfor %}
+  </a>
+  {% endfor %}
+</svg>
+{% endlocalize %}
+</div>
+<h2 class="mt-4">Vertical devices — {{ face }}</h2>
+<p>Physical height is drawn to scale. When outlets do not fit in the drawing, all visible outlets remain listed below. Devices without a placement are not shown.</p>
+<div class="table-responsive"><table class="table table-hover">
+  <thead><tr><th>Device</th><th>Side / lane</th><th>Offset / height (U)</th><th>Visible occupied / free</th><th>Outlets</th><th>Placement</th></tr></thead>
+  <tbody>{% for row in rows %}<tr>
+    <td><a href="{{ row.placement.device.get_absolute_url }}">{{ row.placement.device }}</a>{% if row.invalid %}<div class="text-warning">Placement no longer matches rack/device dimensions. Edit or remove it.</div>{% endif %}</td>
+    <td>{{ row.placement.get_side_display }} / {{ row.placement.lane }}</td><td>{{ row.placement.offset_u }} / {{ row.placement.height_u }}</td>
+    <td>{{ row.used }} / {{ row.free }}</td>
+    <td><details><summary>Outlet details</summary><ul>{% for outlet in row.outlets %}<li>{{ outlet.name }} — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</li>{% empty %}<li>No visible outlets.</li>{% endfor %}</ul></details></td>
+    <td>{% if row.can_change %}<a href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_edit' rack_pk=object.pk pk=row.placement.pk %}">Edit</a>{% endif %}
+    {% if row.can_delete %}<a class="ms-2" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_delete' rack_pk=object.pk pk=row.placement.pk %}">Remove</a>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="6">No visible vertical placements on this face.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

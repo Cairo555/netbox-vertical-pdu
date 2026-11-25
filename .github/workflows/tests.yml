@@ -1,0 +1,62 @@
+name: Plugin tests
+on:
+  push:
+    branches: ["dev/**", main]
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python scripts/check_wheel.py
+  netbox:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: netbox
+          POSTGRES_PASSWORD: netbox
+          POSTGRES_DB: netbox
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:8
+        ports: ['6379:6379']
+    env:
+      NETBOX_CONFIGURATION: netbox.configuration_vpdu_testing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: netbox-community/netbox
+          ref: f5bbfca66cc275730150dfb4ca1b158193e25296 # v4.7.5
+          path: netbox-source
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install exact NetBox dependencies and plugin
+        run: |
+          sed -i 's/^psycopg\[c,pool\]==/psycopg[binary,pool]==/' netbox-source/requirements.txt
+          python -m pip install -r netbox-source/requirements.txt
+          python -m pip install .
+          cp development/configuration_vpdu_testing.py netbox-source/netbox/netbox/
+      - name: System and migration checks
+        run: |
+          python netbox-source/netbox/manage.py check
+          python netbox-source/netbox/manage.py makemigrations netbox_vertical_pdu --check --dry-run
+          python netbox-source/netbox/manage.py migrate --no-input
+          python netbox-source/netbox/manage.py collectstatic --no-input
+      - name: Integration tests against NetBox 4.7.5
+        run: python netbox-source/netbox/manage.py test netbox_vertical_pdu.tests --no-input --verbosity 2
