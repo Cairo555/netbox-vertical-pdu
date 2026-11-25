@@ -67,7 +67,7 @@ with sync_playwright() as p:
         assert boxes[0]["x"] == boxes[1]["x"] < boxes[2]["x"] == boxes[3]["x"]
         assert boxes[0]["y"] + boxes[0]["height"] < boxes[1]["y"]
         assert boxes[2]["y"] + boxes[2]["height"] < boxes[3]["y"]
-        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-pdu[data-device="PDU-L1"] .vpdu-outlet > rect').all()]
+        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-pdu[data-device="PDU-L1"] .vpdu-socket').all()]
         assert len(outlet_boxes) == 13
         # Borders differ for occupied/free sockets; compare their centers.
         assert len({round(box["x"] + box["width"] / 2, 1) for box in outlet_boxes}) == 1
@@ -125,7 +125,7 @@ with sync_playwright() as p:
         expect(short_pdu.locator('.vpdu-outlet')).to_have_count(7)
         expect(short_pdu.locator('.vpdu-mount')).to_have_count(1)
         assert short_pdu.locator('.vpdu-outlet-name').all_text_contents() == [str(i) for i in range(7)]
-        short_boxes = [el.bounding_box() for el in short_pdu.locator('.vpdu-outlet > rect').all()]
+        short_boxes = [el.bounding_box() for el in short_pdu.locator('.vpdu-socket').all()]
         assert all(a['y'] + a['height'] < b['y'] for a, b in zip(short_boxes, short_boxes[1:]))
         short_pdu.locator('.vpdu-outlet').first.click()
         page.wait_for_url(BASE + fixture['front_outlet_url'])

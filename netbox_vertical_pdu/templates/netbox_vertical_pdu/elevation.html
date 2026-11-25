@@ -31,7 +31,8 @@
     {% for outlet in row.outlets %}
       <a class="vpdu-outlet" href="{{ outlet.url }}" aria-label="{{ row.device }} — {{ outlet.name }}" transform="translate({{ outlet.x }} {{ outlet.y }})">
         <title>{{ outlet.name }} — {{ outlet.kind }} — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</title>
-        <rect class="{% if outlet.occupied %}vpdu-used{% else %}vpdu-free{% endif %}" width="30" height="24" rx="4"/>
+        <rect class="vpdu-outlet-hitbox" x="-3" y="-2" width="114" height="28"/>
+        <rect class="vpdu-socket {% if outlet.occupied %}vpdu-used{% else %}vpdu-free{% endif %}" width="30" height="24" rx="4"/>
         {% if outlet.iec %}
           <path class="vpdu-socket-slots" d="M13 4h4v6h-4z M6 13h4v7H6z M20 13h4v7h-4z"/>
         {% else %}

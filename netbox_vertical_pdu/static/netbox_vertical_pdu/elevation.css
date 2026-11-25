@@ -11,7 +11,8 @@
 .vpdu-outlet-name { font-size: 10px; font-weight: 600; }
 .vpdu-socket-slots { fill: var(--tblr-body-color, #222); }
 .vpdu-mount { fill: none; stroke: var(--tblr-body-color, #222); stroke-width: 1; }
-.vpdu-outlet:hover > rect, .vpdu-outlet:focus > rect { stroke: var(--tblr-primary, #066fd1); stroke-width: 3; }
+.vpdu-outlet-hitbox { fill: transparent; stroke: none; pointer-events: all; }
+.vpdu-outlet:hover > .vpdu-socket, .vpdu-outlet:focus > .vpdu-socket { stroke: var(--tblr-primary, #066fd1); stroke-width: 3; }
 .vpdu-used { fill: #d97706; stroke: #8a4400; color: var(--tblr-body-color, #222); }
 .vpdu-free { fill: var(--tblr-bg-surface, #fff); stroke: #198754; stroke-width: 2; color: var(--tblr-body-color, #222); }
 .vpdu-key { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .5rem; border: 1px solid var(--tblr-border-color, #ccc); }
