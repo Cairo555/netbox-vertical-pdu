@@ -46,13 +46,18 @@ with sync_playwright() as p:
             box = element.bounding_box()
             assert box["width"] > 0 and box["height"] > 0
             boxes.append(box)
-        assert boxes[1]["x"] < boxes[0]["x"] < boxes[2]["x"] < boxes[3]["x"]
-        assert abs(boxes[0]["height"] / boxes[2]["height"] - 38 / 42) < 0.001
+        assert boxes[0]["x"] == boxes[1]["x"] < boxes[2]["x"] == boxes[3]["x"]
+        assert boxes[0]["y"] + boxes[0]["height"] < boxes[1]["y"]
+        assert boxes[2]["y"] + boxes[2]["height"] < boxes[3]["y"]
+        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-outlet').all()]
+        assert len(outlet_boxes) == 13
+        assert len({round(box["x"], 1) for box in outlet_boxes}) == 1
+        assert all(a["y"] + a["height"] < b["y"] for a, b in zip(outlet_boxes, outlet_boxes[1:]))
         expect(page.locator('.vpdu-scene a[aria-label="Half-U-shelf"] .vpdu-device')).to_have_attribute("height", "14.0")
         row = page.locator("tbody tr").filter(has=page.get_by_role("link", name="PDU-L1", exact=True))
         expect(row.locator("td").nth(3)).to_have_text("3 / 10")
         assert page.locator(".vpdu-scene rect.vpdu-used").count() == 9
-        record("Four lanes, physical heights, half-U equipment, cabled and marked outlet occupancy")
+        record("Two stacked PDUs per side, vertical labeled sockets, half-U equipment and outlet occupancy")
 
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
         light_fill = page.locator(".vpdu-rack").evaluate("el => getComputedStyle(el).fill")
@@ -61,8 +66,9 @@ with sync_playwright() as p:
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
         dark_fill = page.locator(".vpdu-rack").evaluate("el => getComputedStyle(el).fill")
         assert dark_fill != light_fill
-        page.mouse.move(300, 200)
-        expect(page.locator(".tooltip.show")).to_have_count(0)
+        # Check persistence and capture without the native toggle's focus tooltip.
+        page.reload()
+        expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
         page.screenshot(path=str(OUTPUT / "rack-dark.png"), full_page=True)
         record("Native light/dark toggle changes SVG colors")
 

@@ -20,7 +20,9 @@ Version 0.1.0 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.
 2. Assign a device of that type to a rack. Leave its ordinary rack position empty.
 3. Open the rack's **Enhanced Rack Elevation** tab and select **Add vertical device**.
 4. Select face, side, lane, bottom offset and physical height. A full-height device in a 42U rack uses offset 0 and height 42.
-5. For four PDUs use left lanes 1/2 and right lanes 1/2. Lane 1 is closest to the rack.
+5. To stack two PDUs per side in a 42U rack, use **lane 1 for both**: e.g. height 20 / bottom offset 0 for the lower PDU and height 20 / bottom offset 22 for the upper PDU. Apply the same arrangement on the other side. These are example dimensions; enter the actual physical heights and positions.
+
+Different lanes (1/2/…) put devices **side by side**, for racks mounted that way. Lane 1 is closest to the rack. Socket symbols form one vertical column with outlet names, connector labels and occupied/free status; their spacing is schematic, not a manufacturer drawing. Dense outlet lists show an explicit remainder count with full details in the table.
 
 Left/right are **as viewed from the selected face**. A placement appears on its selected face only; it is not mirrored onto the opposite face. Physical offsets always start at the rack bottom regardless of numbering direction or starting unit. Regular full-depth equipment appears on both faces.
 

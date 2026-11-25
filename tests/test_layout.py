@@ -62,6 +62,33 @@ class LayoutTests(unittest.TestCase):
         scene = self.scene(placements=[p], outlets={1: [NS(name="1", cable_id=None, mark_connected=False)]})
         self.assertEqual(scene["pdus"][0]["outlets"], [])
 
+    def test_stacked_pdus_share_x_and_do_not_overlap(self):
+        ps = [NS(side="left", lane=1, offset_u=D(offset), height_u=D(20), device_id=i, device=NS(name=str(i)))
+              for i, offset in enumerate((22, 0))]
+        top, bottom = self.scene(placements=ps)["pdus"]
+        self.assertEqual(top["x"], bottom["x"])
+        self.assertLess(top["y"] + top["height"], bottom["y"])
+
+    def test_outlets_follow_single_column_with_names_and_type(self):
+        p = NS(side="left", lane=1, offset_u=D(0), height_u=D(20), device_id=1, device=NS(name="PDU"))
+        outlets = [NS(name=f"Outlet-{i:02}", type="iec-60320-c13", cable_id=None, mark_connected=i == 2) for i in range(1, 13)]
+        row = self.scene(placements=[p], outlets={1: outlets})["pdus"][0]
+        points = row["outlets"]
+        self.assertEqual(len(points), 12)
+        self.assertEqual(len({point["x"] for point in points}), 1)
+        self.assertTrue(all(a["y"] + 24 < b["y"] for a, b in zip(points, points[1:])))
+        self.assertEqual(points[0]["name"], "Outlet-01")
+        self.assertEqual(points[0]["kind"], "C13")
+        self.assertEqual(row["used"], 1)
+
+    def test_dense_outlets_are_disclosed_not_overlapped(self):
+        p = NS(side="right", lane=1, offset_u=D(0), height_u=D(4), device_id=1, device=NS(name="short"))
+        outlets = [NS(name=str(i), cable_id=None, mark_connected=False) for i in range(20)]
+        row = self.scene(placements=[p], outlets={1: outlets})["pdus"][0]
+        self.assertEqual(row["total"], len(row["outlets"]) + row["overflow"])
+        self.assertGreater(row["overflow"], 0)
+        self.assertTrue(all(point["y"] + 24 < row["y"] + row["height"] - 16 for point in row["outlets"]))
+
 
 if __name__ == "__main__":
     unittest.main()

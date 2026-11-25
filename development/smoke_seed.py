@@ -38,10 +38,10 @@ with transaction.atomic():
     placements = []
     first_outlets = []
     for name, side, lane, height, offset in (
-        ("PDU-L1", "left", 1, 38, 2),
-        ("PDU-L2", "left", 2, 20, 10),
-        ("PDU-R1", "right", 1, 42, 0),
-        ("PDU-R2", "right", 2, 30, 6),
+        ("PDU-L1", "left", 1, 20, 22),
+        ("PDU-L2", "left", 1, 20, 0),
+        ("PDU-R1", "right", 1, 20, 22),
+        ("PDU-R2", "right", 1, 20, 0),
     ):
         pdu = device(name)
         pdus.append(pdu)

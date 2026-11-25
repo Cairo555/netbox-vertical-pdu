@@ -8,7 +8,7 @@ class PlacementForm(forms.ModelForm):
         model = VerticalPlacement
         fields = ("device", "face", "side", "lane", "offset_u", "height_u")
         labels = {"offset_u": "Offset from rack bottom (U)", "height_u": "Physical height (U)"}
-        help_texts = {"lane": "Lane 1 is closest to the rack. Left/right are as viewed from the selected face.",
+        help_texts = {"lane": "Use the same lane with different bottom offsets to stack devices. Different lanes place them side by side. Lane 1 is closest to the rack; left/right are as viewed from the selected face.",
                       "height_u": "Physical length: 1 U = 44.45 mm. Does not consume rack units."}
 
     def __init__(self, *args, user, rack, **kwargs):

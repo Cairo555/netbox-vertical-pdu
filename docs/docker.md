@@ -60,7 +60,7 @@ docker compose -p vpdu-dev exec netbox /opt/netbox/venv/bin/python /opt/netbox/n
 
 The Docker entrypoint applies pending migrations. Verify `0001_initial` is marked `[X]`. Create a development administrator using the normal NetBox Docker procedure, open `http://localhost:8000` and exercise the rack tab. Assets are collected in the image; if you mount a separate static directory, collect assets into it too.
 
-Verify four PDUs across two lanes per side, front/rear, a cabled outlet, marked-connected and free outlets, a restricted user, both color themes, half-U equipment, and descending/custom rack numbering.
+Verify two PDUs stacked in lane 1 on each side (different bottom offsets), plus a separate side-by-side lane if required by your rack. Also verify front/rear, a cabled outlet, marked-connected and free outlets, a restricted user, both color themes, half-U equipment, and descending/custom rack numbering.
 
 ## Rollback / removal
 
