@@ -80,6 +80,42 @@ class IntegrationTests(TestCase):
         self.viewer()
         self.assertEqual(self.client.get(self.url(rack=self.other_rack)).status_code, 404)
 
+    def test_device_permission_independent_of_placement_permission(self):
+        self.viewer()
+        self.grant(VerticalPlacement, ["view"])
+        self.assertNotContains(self.client.get(self.url()), "PDU-secret")
+
+    def test_placement_permission_independent_of_device_permission(self):
+        self.viewer()
+        self.grant(Device, ["view"])
+        self.assertNotContains(self.client.get(self.url()), "PDU-secret")
+
+    def test_no_outlet_permission_does_not_expose_counts(self):
+        self.grant(Rack, ["view"])
+        self.grant(Device, ["view"])
+        self.grant(VerticalPlacement, ["view"])
+        self.client.force_login(self.user)
+        response = self.client.get(self.url())
+        self.assertNotContains(response, "Outlet-used")
+        self.assertTrue(all(row["used"] == row["free"] == 0 for row in response.context["rows"]))
+
+    def test_add_constraint_rollback(self):
+        self.viewer()
+        self.grant(VerticalPlacement, ["add"], {"side": "left"})
+        self.placement.delete()
+        response = self.client.post(self.url("add"), self.payload(side="right"))
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(VerticalPlacement.objects.filter(device=self.device).exists())
+
+    def test_hidden_device_cannot_be_selected(self):
+        self.viewer()
+        self.grant(VerticalPlacement, ["change"])
+        response = self.client.post(self.url("edit", self.placement.pk), self.payload(device=self.hidden_device.pk))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("device", response.context["form"].errors)
+        self.placement.refresh_from_db()
+        self.assertEqual(self.placement.device_id, self.device.pk)
+
     def test_anonymous_redirect(self):
         self.assertEqual(self.client.get(self.url()).status_code, 302)
 
