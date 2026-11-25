@@ -71,7 +71,12 @@ with sync_playwright() as p:
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
         page.screenshot(path=str(OUTPUT / "rack-dark.png"), full_page=True)
+        # Keep the whole drawing below the fixed navigation bar while taking
+        # the focused screenshot; auto-scrolling a taller element clips its top.
+        page.set_viewport_size({"width": 1600, "height": 2000})
+        page.evaluate("window.scrollTo(0, 0)")
         page.locator(".vpdu-scene").screenshot(path=str(OUTPUT / "rack-diagram-dark.png"))
+        page.set_viewport_size({"width": 1600, "height": 1100})
         record("Native light/dark toggle changes SVG colors")
 
         page.locator('.vpdu-scene a[aria-label="PDU-L1"]').click()
@@ -111,6 +116,7 @@ with sync_playwright() as p:
         record("Browser create/edit/delete, bounds and overlap validation; core device retained")
 
         page.set_viewport_size({"width": 390, "height": 844})
+        page.evaluate("window.scrollTo(0, 0)")
         page.screenshot(path=str(OUTPUT / "rack-mobile.png"), full_page=True)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
         assert page.locator(".vpdu-scroll").evaluate("el => el.scrollWidth > el.clientWidth")
