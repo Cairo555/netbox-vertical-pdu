@@ -67,8 +67,8 @@ with sync_playwright() as p:
         assert boxes[0]["x"] == boxes[1]["x"] < boxes[2]["x"] == boxes[3]["x"]
         assert boxes[0]["y"] + boxes[0]["height"] < boxes[1]["y"]
         assert boxes[2]["y"] + boxes[2]["height"] < boxes[3]["y"]
-        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-outlet > rect').all()]
-        assert len(outlet_boxes) == 11
+        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-pdu[data-device="PDU-L1"] .vpdu-outlet > rect').all()]
+        assert len(outlet_boxes) == 13
         # Borders differ for occupied/free sockets; compare their centers.
         assert len({round(box["x"] + box["width"] / 2, 1) for box in outlet_boxes}) == 1
         assert all(a["y"] + a["height"] < b["y"] for a, b in zip(outlet_boxes, outlet_boxes[1:]))
@@ -120,6 +120,15 @@ with sync_playwright() as p:
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
         page.screenshot(path=str(OUTPUT / "rack-front-native.png"), full_page=True)
         record("Front/rear SVG geometry, labels, colors and backgrounds match the native rack page exactly")
+        short_pdu = page.locator('.vpdu-pdu[data-device="PDU-F1"]')
+        expect(short_pdu.locator('.vpdu-outlet')).to_have_count(7)
+        expect(short_pdu.locator('.vpdu-mount')).to_have_count(1)
+        assert short_pdu.locator('.vpdu-outlet-name').all_text_contents() == [str(i) for i in range(7)]
+        short_boxes = [el.bounding_box() for el in short_pdu.locator('.vpdu-outlet > rect').all()]
+        assert all(a['y'] + a['height'] < b['y'] for a, b in zip(short_boxes, short_boxes[1:]))
+        short_pdu.locator('.vpdu-outlet').first.click()
+        page.wait_for_url(BASE + fixture['front_outlet_url'])
+        record("All seven outlets on a short PDU remain visible in order and open their native outlet page")
         record("Clickable PDU and front/rear switching")
 
         page.goto(BASE + fixture["elevation"])
@@ -169,7 +178,7 @@ with sync_playwright() as p:
         login(reader, "smoke-reader", "Disposable-reader-42!")
         reader.goto(BASE + fixture["elevation"])
         expect(reader.locator('.vpdu-native > svg')).to_be_visible()
-        expect(reader.locator('.vpdu-pdus > a')).to_have_count(1)
+        expect(reader.locator('.vpdu-pdu > a:not(.vpdu-outlet)')).to_have_count(1)
         for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Outlet-13", "Compute-01"):
             assert secret not in reader.content()
         expect(reader.get_by_role("link", name="Add vertical device", exact=True)).to_have_count(0)

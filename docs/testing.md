@@ -2,11 +2,11 @@
 
 ## Actual execution status
 
-The 14 framework-independent tests were executed successfully locally on Python 3.12.14. Package construction, packaged assets, the exact Docker image build and NetBox integration are checked by CI; consult the linked run for the tested commit and its actual conclusion:
+The 15 framework-independent tests were executed successfully locally. Package construction, packaged assets, the exact Docker image build and NetBox integration are checked by CI; consult the linked run for the tested commit and its actual conclusion:
 
 [Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
 
-The automated suite contains 14 unit tests and 21 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
+The automated suite contains 15 unit tests and 22 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
 
 ## Local unit tests
 
@@ -18,7 +18,7 @@ python -m build
 python scripts/check_wheel.py
 ```
 
-These cover dimensions, bounds, touching/overlapping intervals, multiple lanes, native configurable rack dimensions and PDU alignment, short-device outlet clipping, and cabled/marked/free occupancy. Native numbering is checked in the live browser. Unit tests alone do not establish NetBox compatibility.
+These cover dimensions, bounds, touching/overlapping intervals, multiple lanes, native configurable rack dimensions and PDU alignment, expanded cards without overlap, complete naturally sorted outlet lists and links, and cabled/marked/free occupancy. Native numbering is checked in the live browser. Unit tests alone do not establish NetBox compatibility.
 
 ## NetBox integration tests
 

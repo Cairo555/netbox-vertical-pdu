@@ -60,7 +60,8 @@ with transaction.atomic():
             assert outlets[1].cable_id == cable.pk
     PowerOutlet.objects.create(device=pdus[0], name="Outlet-13", type="iec-60320-c13")
     front = device("PDU-F1")
-    VerticalPlacement.objects.create(device=front, rack=rack, face="front", side="right", height_u=42)
+    VerticalPlacement.objects.create(device=front, rack=rack, face="front", side="right", height_u=4, offset_u=18)
+    front_outlets = [PowerOutlet.objects.create(device=front, name=str(i), type="iec-60320-c13") for i in range(7)]
     spare = device("PDU-spare")
     device("Top-server", server_type, target=descending, position=11, face="front")
     device("Bottom-server", server_type, target=descending, position=27, face="front")
@@ -85,6 +86,7 @@ manifest = {
     "spare_id": spare.pk,
     "spare_url": spare.get_absolute_url(),
     "pdu_url": pdus[0].get_absolute_url(),
+    "front_outlet_url": front_outlets[0].get_absolute_url(),
 }
 Path("/tmp/vpdu-smoke.json").write_text(json.dumps(manifest), encoding="utf-8")
 print("Created isolated rack/browser fixtures.")

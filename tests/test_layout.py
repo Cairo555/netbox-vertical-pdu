@@ -9,6 +9,10 @@ layout = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(layout)
 
 
+def outlet(name, **kwargs):
+    return NS(name=name, get_absolute_url=lambda: f"/dcim/power-outlets/{name}/", **kwargs)
+
+
 class LayoutTests(unittest.TestCase):
     def test_full_height(self):
         layout.validate_dimensions(42, 0, 42, 1)
@@ -61,10 +65,15 @@ class LayoutTests(unittest.TestCase):
         self.assertLess(scene["pdus"][1]["x"], scene["pdus"][0]["x"])
         self.assertGreater(scene["pdus"][3]["x"], scene["pdus"][2]["x"])
 
-    def test_short_device_outlets_stay_inside(self):
+    def test_short_device_expands_card_but_preserves_mounting_span(self):
         p = NS(side="left", lane=1, offset_u=D(0), height_u=D(1), device_id=1, device=NS(name="PDU"))
-        scene = self.scene(placements=[p], outlets={1: [NS(name="1", cable_id=None, mark_connected=False)]})
-        self.assertEqual(scene["pdus"][0]["outlets"], [])
+        scene = self.scene(placements=[p], outlets={1: [outlet("1", cable_id=None, mark_connected=False)]})
+        row = scene["pdus"][0]
+        self.assertEqual(len(row["outlets"]), 1)
+        self.assertEqual(row["physical_height"], 22)
+        self.assertTrue(row["expanded"])
+        self.assertTrue(row["marker"])
+        self.assertGreaterEqual(scene["height"], row["y"] + row["height"])
 
     def test_stacked_pdus_share_x_and_do_not_overlap(self):
         ps = [NS(side="left", lane=1, offset_u=D(offset), height_u=D(20), device_id=i, device=NS(name=str(i)))
@@ -75,7 +84,7 @@ class LayoutTests(unittest.TestCase):
 
     def test_outlets_follow_single_column_with_names_and_type(self):
         p = NS(side="left", lane=1, offset_u=D(0), height_u=D(24), device_id=1, device=NS(name="PDU"))
-        outlets = [NS(name=f"Outlet-{i:02}", type="iec-60320-c13", cable_id=None, mark_connected=i == 2) for i in range(1, 13)]
+        outlets = [outlet(f"Outlet-{i:02}", type="iec-60320-c13", cable_id=None, mark_connected=i == 2) for i in range(1, 13)]
         row = self.scene(placements=[p], outlets={1: outlets})["pdus"][0]
         points = row["outlets"]
         self.assertEqual(len(points), 12)
@@ -85,13 +94,24 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(points[0]["kind"], "C13")
         self.assertEqual(row["used"], 1)
 
-    def test_dense_outlets_are_disclosed_not_overlapped(self):
+    def test_all_dense_outlets_are_visible_clickable_and_naturally_sorted(self):
         p = NS(side="right", lane=1, offset_u=D(0), height_u=D(4), device_id=1, device=NS(name="short"))
-        outlets = [NS(name=str(i), cable_id=None, mark_connected=False) for i in range(20)]
+        outlets = [outlet(str(i), cable_id=None, mark_connected=False) for i in reversed(range(20))]
         row = self.scene(placements=[p], outlets={1: outlets})["pdus"][0]
-        self.assertEqual(row["total"], len(row["outlets"]) + row["overflow"])
-        self.assertGreater(row["overflow"], 0)
+        self.assertEqual(row["total"], len(row["outlets"]))
+        self.assertEqual([p["name"] for p in row["outlets"]], [str(i) for i in range(20)])
+        self.assertEqual(row["outlets"][1]["url"], "/dcim/power-outlets/1/")
+        self.assertTrue(row["expanded"])
         self.assertTrue(all(point["y"] + 24 < row["y"] + row["height"] - 16 for point in row["outlets"]))
+
+    def test_expanded_cards_in_same_lane_do_not_overlap(self):
+        ps = [NS(side="left", lane=1, offset_u=D(offset), height_u=D(4), device_id=i, device=NS(name=str(i)))
+              for i, offset in enumerate((10, 6))]
+        outlets = {i: [outlet(str(n), cable_id=None, mark_connected=False) for n in range(7)] for i in range(2)}
+        top, bottom = self.scene(placements=ps, outlets=outlets)["pdus"]
+        self.assertLess(top["y"] + top["height"], bottom["y"])
+        self.assertEqual(top["physical_y"] + top["physical_height"], bottom["physical_y"])
+        self.assertTrue(bottom["marker"])
 
 
 if __name__ == "__main__":

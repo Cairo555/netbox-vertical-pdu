@@ -7,7 +7,7 @@
   <a class="btn {% if face == 'rear' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?face=rear">Rear</a>
   {% if can_add %}<a class="btn btn-success" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_add' rack_pk=object.pk %}">Add vertical device</a>{% endif %}
 </div>
-<p>Vertical devices are shown beside the rack. Power outlets run from top to bottom and use their NetBox names. Only outlets you may view are included.</p>
+<p>All visible power outlets run from top to bottom. Click an outlet to view or manage its cable in NetBox. Expanded cards use a bracket to mark the actual mounting height.</p>
 <p><span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-used" x="1" y="1" width="14" height="12" rx="2"/></svg> Occupied</span> <span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-free" x="1" y="1" width="14" height="12" rx="2"/></svg> Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
 <div class="vpdu-scroll p-3">
 {% localize off %}
@@ -17,16 +17,19 @@
   {% for label in scene.side_labels %}<text class="vpdu-text vpdu-heading" text-anchor="middle" x="{{ label.x }}" y="23">{{ label.text }}</text>{% endfor %}
   <text class="vpdu-text vpdu-heading" text-anchor="middle" x="{{ scene.rack_label_x }}" y="23">{{ face|title }}</text>
   {% for row in scene.pdus %}
+  <g class="vpdu-pdu" data-device="{{ row.device }}">
+  {% if row.marker %}<path class="vpdu-mount" d="{{ row.marker }}"><title>{{ row.device }} — actual mounting height {{ row.placement.height_u }} U, offset {{ row.placement.offset_u }} U</title></path>{% endif %}
   <a href="{{ row.device.get_absolute_url }}" aria-label="{{ row.device }}">
     <title>{{ row.device }} — {{ row.placement.get_side_display }} lane {{ row.placement.lane }}</title>
     <rect class="vpdu-device vpdu-strip" x="{{ row.x }}" y="{{ row.y }}" width="130" height="{{ row.height }}" rx="5"/>
     <svg x="{{ row.x }}" y="{{ row.y }}" width="130" height="{{ row.height }}">
       <text class="vpdu-text vpdu-heading" x="8" y="18">{{ row.device }}</text>
       {% if row.height >= 64 %}<text class="vpdu-text vpdu-summary" x="8" y="33">{{ row.total }} outlets · {{ row.used }} occupied</text>{% endif %}
-      {% if row.overflow and row.height >= 96 %}<text class="vpdu-text vpdu-summary" x="8" y="{{ row.footer_y }}">+{{ row.overflow }} more in table</text>{% endif %}
+      {% if row.expanded %}<text class="vpdu-text vpdu-summary" x="8" y="47">{{ row.placement.height_u }} U · expanded</text>{% endif %}
     </svg>
+  </a>
     {% for outlet in row.outlets %}
-      <g class="vpdu-outlet" transform="translate({{ outlet.x }} {{ outlet.y }})">
+      <a class="vpdu-outlet" href="{{ outlet.url }}" aria-label="{{ row.device }} — {{ outlet.name }}" transform="translate({{ outlet.x }} {{ outlet.y }})">
         <title>{{ outlet.name }} — {{ outlet.kind }} — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</title>
         <rect class="{% if outlet.occupied %}vpdu-used{% else %}vpdu-free{% endif %}" width="30" height="24" rx="4"/>
         {% if outlet.iec %}
@@ -36,9 +39,9 @@
         {% endif %}
         <text class="vpdu-text vpdu-outlet-name" x="38" y="10">{{ outlet.short_name }}</text>
         <text class="vpdu-text vpdu-outlet-status" x="38" y="23">{% if outlet.iec %}{{ outlet.kind }} · {% endif %}{% if outlet.occupied %}Occupied{% else %}Free{% endif %}</text>
-      </g>
+      </a>
     {% endfor %}
-  </a>
+  </g>
   {% endfor %}
 </svg>
 <div class="vpdu-native rack_elevation" style="left: {{ scene.native_x }}px; top: {{ scene.native_y }}px; width: {{ scene.native_width }}px;">
@@ -53,14 +56,14 @@
 {% endlocalize %}
 </div>
 <h2 class="mt-4">Vertical devices — {{ face }}</h2>
-<p>Device height and bottom offset are to scale; socket symbols and spacing are schematic. If outlets do not fit, all visible outlets remain listed below. Devices without a placement are not shown.</p>
+<p>The rack and mounting brackets are to scale. Outlet cards expand when needed so every visible outlet remains readable; cards in the same lane are kept apart. Socket spacing is schematic. Devices without a placement are not shown.</p>
 <div class="table-responsive"><table class="table table-hover">
   <thead><tr><th>Device</th><th>Side / lane</th><th>Offset / height (U)</th><th>Visible occupied / free</th><th>Outlets</th><th>Placement</th></tr></thead>
   <tbody>{% for row in rows %}<tr>
     <td><a href="{{ row.placement.device.get_absolute_url }}">{{ row.placement.device }}</a>{% if row.invalid %}<div class="text-warning">Placement no longer matches rack/device dimensions. Edit or remove it.</div>{% endif %}</td>
     <td>{{ row.placement.get_side_display }} / {{ row.placement.lane }}</td><td>{{ row.placement.offset_u }} / {{ row.placement.height_u }}</td>
     <td>{{ row.used }} / {{ row.free }}</td>
-    <td><details><summary>Outlet details</summary><ul>{% for outlet in row.outlets %}<li>{{ outlet.name }} — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</li>{% empty %}<li>No visible outlets.</li>{% endfor %}</ul></details></td>
+    <td><details><summary>Outlet details</summary><ul>{% for outlet in row.outlets %}<li><a href="{{ outlet.url }}">{{ outlet.name }}</a> — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</li>{% empty %}<li>No visible outlets.</li>{% endfor %}</ul></details></td>
     <td>{% if row.can_change %}<a href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_edit' rack_pk=object.pk pk=row.placement.pk %}">Edit</a>{% endif %}
     {% if row.can_delete %}<a class="ms-2" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_delete' rack_pk=object.pk pk=row.placement.pk %}">Remove</a>{% endif %}</td>
   </tr>{% empty %}<tr><td colspan="6">No visible vertical placements on this face.</td></tr>{% endfor %}</tbody>

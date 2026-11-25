@@ -13,7 +13,7 @@ from dcim.constants import RACK_ELEVATION_DEFAULT_LEGEND_WIDTH, RACK_ELEVATION_D
 from utilities.views import ViewTab, register_model_view
 
 from .forms import PlacementForm
-from .layout import build_scene, occupied, validate_dimensions
+from .layout import build_scene, occupied, outlet_sort_key, validate_dimensions
 from .models import VerticalPlacement
 
 
@@ -50,10 +50,10 @@ class EnhancedRackView(generic.ObjectView):
         delete_ids = set(VerticalPlacement.objects.restrict(request.user, "delete").filter(rack=instance).values_list("pk", flat=True))
         rows = []
         for p in placements:
-            visible = outlets[p.device_id]
+            visible = sorted(outlets[p.device_id], key=outlet_sort_key)
             used = sum(occupied(o) for o in visible)
             rows.append({"placement": p, "used": used, "free": len(visible) - used,
-                         "outlets": [{"name": o.name, "occupied": occupied(o)} for o in visible],
+                         "outlets": [{"name": o.name, "occupied": occupied(o), "url": o.get_absolute_url()} for o in visible],
                          "can_change": p.pk in change_ids, "can_delete": p.pk in delete_ids,
                          "invalid": p in invalid})
         config = get_config()
@@ -61,7 +61,7 @@ class EnhancedRackView(generic.ObjectView):
                             unit_height=config.RACK_ELEVATION_DEFAULT_UNIT_HEIGHT,
                             unit_width=config.RACK_ELEVATION_DEFAULT_UNIT_WIDTH,
                             legend_width=RACK_ELEVATION_DEFAULT_LEGEND_WIDTH,
-                            margin_width=config.RACK_ELEVATION_DEFAULT_MARGIN_WIDTH,
+                            margin_width=RACK_ELEVATION_DEFAULT_MARGIN_WIDTH,
                             border_width=RACK_ELEVATION_BORDER_WIDTH)
         return {"face": face, "scene": scene, "rows": rows,
                 "can_add": request.user.has_perm("netbox_vertical_pdu.add_verticalplacement")}

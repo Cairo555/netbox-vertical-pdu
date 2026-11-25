@@ -217,3 +217,17 @@ class IntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Hidden server")
         self.assertContains(response, 'class="blocked"')
+
+    def test_short_pdu_renders_every_outlet_with_native_links(self):
+        self.client.force_login(self.admin)
+        device = self.make_device("Short-PDU")
+        VerticalPlacement.objects.create(device=device, rack=self.rack, height_u=4, offset_u=18, lane=3)
+        outlets = [PowerOutlet.objects.create(device=device, name=str(i), type="iec-60320-c13") for i in reversed(range(7))]
+        response = self.client.get(self.url())
+        row = next(p for p in response.context["scene"]["pdus"] if p["device"].pk == device.pk)
+        self.assertEqual([o["name"] for o in row["outlets"]], [str(i) for i in range(7)])
+        self.assertEqual(row["physical_height"], 88)
+        self.assertGreater(row["height"], row["physical_height"])
+        for outlet in outlets:
+            self.assertContains(response, f'href="{outlet.get_absolute_url()}"')
+        self.assertNotContains(response, "more in table")
