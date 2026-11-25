@@ -6,7 +6,7 @@ The 11 framework-independent tests and Python compilation were executed successf
 
 [Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
 
-The automated suite contains 11 unit tests and 19 NetBox integration tests. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Full Docker-stack startup and browser visual checks have not been performed. No production installation has been performed.
+The automated suite contains 11 unit tests and 19 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
 
 ## Local unit tests
 
@@ -41,6 +41,24 @@ python netbox/manage.py test netbox_vertical_pdu.tests --no-input --verbosity 2
 
 Never use a production database. The supplied configuration is test-only.
 
-## Manual checks
+## Docker startup and browser checks
 
-Docker image build/startup and browser light/dark rendering are separate from unit/Django integration tests. Follow [docker.md](docker.md). Automated test success does not imply those manual checks were performed.
+The Docker job starts the exact 4.7.5/5.1.2 image using the real entrypoint and web server, plus a worker, PostgreSQL and separate Redis task/cache services. It waits for health checks, seeds an empty test database, then runs Chromium against the live web service. The stack is removed afterward; it has no production credentials or external volumes and its port is bound only to loopback.
+
+The browser checks cover native tab/static assets, four side lanes, proportional heights, half-U devices, real cabled/marked/free outlets, the native light/dark toggle, clickable PDUs, front/rear switching, placement CRUD and validation, a narrow mobile viewport, descending numbering, restricted user visibility and JavaScript errors. Five screenshots and a JSON report are saved for review. Automated assertions do not substitute for inspecting those images.
+
+To reproduce on a machine with Docker Compose and Python:
+
+```sh
+docker build -f development/Dockerfile -t netbox-vertical-pdu:test .
+docker compose -p vpdu-smoke -f development/compose.smoke.yml up -d --wait --wait-timeout 900
+mkdir -p test-results
+docker compose -p vpdu-smoke -f development/compose.smoke.yml exec -T netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell --no-startup --no-imports < development/smoke_seed.py
+docker compose -p vpdu-smoke -f development/compose.smoke.yml cp netbox:/tmp/vpdu-smoke.json test-results/fixture.json
+python -m pip install playwright==1.64.1
+python -m playwright install --with-deps chromium
+python development/browser_smoke.py
+docker compose -p vpdu-smoke -f development/compose.smoke.yml down --volumes
+```
+
+Run the cleanup command even after a failed test. The seed explicitly refuses a database that already contains a Site. Fixed example credentials in these files are solely for this disposable, loopback-only test stack. For a persistent staging installation, follow [docker.md](docker.md) and configure your own credentials.
