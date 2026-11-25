@@ -70,6 +70,7 @@ with sync_playwright() as p:
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
         page.screenshot(path=str(OUTPUT / "rack-dark.png"), full_page=True)
+        page.locator(".vpdu-scene").screenshot(path=str(OUTPUT / "rack-diagram-dark.png"))
         record("Native light/dark toggle changes SVG colors")
 
         page.locator('.vpdu-scene a[aria-label="PDU-L1"]').click()
