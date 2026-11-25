@@ -61,6 +61,8 @@ with sync_playwright() as p:
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
         dark_fill = page.locator(".vpdu-rack").evaluate("el => getComputedStyle(el).fill")
         assert dark_fill != light_fill
+        page.mouse.move(300, 200)
+        expect(page.locator(".tooltip.show")).to_have_count(0)
         page.screenshot(path=str(OUTPUT / "rack-dark.png"), full_page=True)
         record("Native light/dark toggle changes SVG colors")
 
@@ -95,6 +97,7 @@ with sync_playwright() as p:
         expect(page.locator('.vpdu-scene a[aria-label="PDU-spare"] .vpdu-device')).to_have_attribute("height", "420.0")
         spare_row.get_by_role("link", name="Remove", exact=True).click()
         page.get_by_role("button", name="Remove placement", exact=True).click()
+        expect(page.locator(".vpdu-scene")).to_be_visible()
         expect(page.locator('.vpdu-scene a[aria-label="PDU-spare"]')).to_have_count(0)
         assert context.request.get(BASE + fixture["spare_url"]).status == 200
         record("Browser create/edit/delete, bounds and overlap validation; core device retained")

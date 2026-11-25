@@ -8,7 +8,7 @@
   {% if can_add %}<a class="btn btn-success" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_add' rack_pk=object.pk %}">Add vertical device</a>{% endif %}
 </div>
 <p>Left and right are as viewed from the selected face. Lane 1 is closest to the rack. Outlet counts include only outlets you may view.</p>
-<p><span class="vpdu-key vpdu-used">■ Occupied</span> <span class="vpdu-key vpdu-free">□ Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
+<p><span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-used" x="1" y="1" width="14" height="12" rx="2"/></svg> Occupied</span> <span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-free" x="1" y="1" width="14" height="12" rx="2"/></svg> Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
 <div class="vpdu-scroll card p-3">
 {% localize off %}
 <svg class="vpdu-scene" xmlns="http://www.w3.org/2000/svg" width="{{ scene.width }}" height="{{ scene.height }}" viewBox="0 0 {{ scene.width }} {{ scene.height }}" role="img" aria-labelledby="vpdu-title">
