@@ -106,7 +106,8 @@ with sync_playwright() as p:
         page.goto(BASE + fixture["elevation"])
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
 
-        page.locator('.vpdu-scene a[aria-label="PDU-L1"]').click()
+        # Outlet links now occupy the card body; the heading opens the device.
+        page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-heading').click()
         page.wait_for_url(BASE + fixture["pdu_url"])
         page.goto(BASE + fixture["elevation"])
         page.get_by_role("link", name="Front", exact=True).click()
@@ -160,6 +161,7 @@ with sync_playwright() as p:
         record("Browser create/edit/delete, bounds and overlap validation; core device retained")
 
         page.set_viewport_size({"width": 390, "height": 844})
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
         page.evaluate("window.scrollTo(0, 0)")
         page.screenshot(path=str(OUTPUT / "rack-mobile.png"), full_page=True)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
