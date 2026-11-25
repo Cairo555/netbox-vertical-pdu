@@ -66,6 +66,13 @@ class IntegrationTests(TestCase):
         self.assertContains(response, "PDU-visible")
         self.assertContains(response, self.device.get_absolute_url())
 
+    def test_event_serialization(self):
+        from extras.events import serialize_for_event
+        data = serialize_for_event(self.placement)
+        self.assertEqual(data["device"], self.device.pk)
+        self.assertEqual(data["rack"], self.rack.pk)
+        self.assertEqual(data["height_u"], "42.00")
+
     def test_permissions_hide_devices_and_outlets(self):
         self.viewer()
         response = self.client.get(self.url())

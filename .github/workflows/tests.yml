@@ -5,6 +5,9 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: plugin-tests-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   docker-build:
@@ -26,6 +29,7 @@ jobs:
       - run: python scripts/check_wheel.py
   netbox:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:18
