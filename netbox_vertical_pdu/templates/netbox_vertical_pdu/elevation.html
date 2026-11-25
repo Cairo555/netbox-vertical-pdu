@@ -9,23 +9,13 @@
 </div>
 <p>Vertical devices are shown beside the rack. Power outlets run from top to bottom and use their NetBox names. Only outlets you may view are included.</p>
 <p><span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-used" x="1" y="1" width="14" height="12" rx="2"/></svg> Occupied</span> <span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-free" x="1" y="1" width="14" height="12" rx="2"/></svg> Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
-<div class="vpdu-scroll card p-3">
+<div class="vpdu-scroll p-3">
 {% localize off %}
-<svg class="vpdu-scene" xmlns="http://www.w3.org/2000/svg" width="{{ scene.width }}" height="{{ scene.height }}" viewBox="0 0 {{ scene.width }} {{ scene.height }}" role="img" aria-labelledby="vpdu-title">
+<div class="vpdu-scene" style="width: {{ scene.width }}px; height: {{ scene.height }}px;">
+<svg class="vpdu-pdus" xmlns="http://www.w3.org/2000/svg" width="{{ scene.width }}" height="{{ scene.height }}" viewBox="0 0 {{ scene.width }} {{ scene.height }}" role="img" aria-labelledby="vpdu-title">
   <title id="vpdu-title">{{ object }} — {{ face }} enhanced rack elevation</title>
   {% for label in scene.side_labels %}<text class="vpdu-text vpdu-heading" text-anchor="middle" x="{{ label.x }}" y="23">{{ label.text }}</text>{% endfor %}
-  <text class="vpdu-text vpdu-heading" text-anchor="middle" x="{{ scene.rack_label_x }}" y="23">Rack — {{ face }}</text>
-  <rect class="vpdu-rack" x="{{ scene.rack_x }}" y="40" width="{{ scene.rack_width }}" height="{{ scene.rack_height }}"/>
-  {% for unit in scene.units %}
-  <svg x="{{ scene.rack_x }}" y="{{ unit.y }}" width="430" height="28"><path class="vpdu-grid" d="M0 0 H430"/><text x="5" y="20" class="vpdu-text">{{ unit.label }}</text></svg>
-  {% endfor %}
-  {% for row in scene.devices %}
-  <a href="{{ row.device.get_absolute_url }}" aria-label="{{ row.device }}">
-    <title>{{ row.device }}</title>
-    <rect class="vpdu-device" x="{{ row.x }}" y="{{ row.y }}" width="380" height="{{ row.height }}"/>
-    <svg x="{{ row.x }}" y="{{ row.y }}" width="380" height="{{ row.height }}"><text class="vpdu-text" x="6" y="12">{{ row.device }}</text></svg>
-  </a>
-  {% endfor %}
+  <text class="vpdu-text vpdu-heading" text-anchor="middle" x="{{ scene.rack_label_x }}" y="23">{{ face|title }}</text>
   {% for row in scene.pdus %}
   <a href="{{ row.device.get_absolute_url }}" aria-label="{{ row.device }}">
     <title>{{ row.device }} — {{ row.placement.get_side_display }} lane {{ row.placement.lane }}</title>
@@ -51,6 +41,15 @@
   </a>
   {% endfor %}
 </svg>
+<div class="vpdu-native rack_elevation" style="left: {{ scene.native_x }}px; top: {{ scene.native_y }}px; width: {{ scene.native_width }}px;">
+  <div hx-get="{% url 'dcim-api:rack-elevation' pk=object.pk %}?face={{ face }}&amp;render=svg&amp;unit_width={{ scene.unit_width }}&amp;unit_height={{ scene.unit_height }}"
+       hx-trigger="intersect" hx-swap="outerHTML" aria-label="Rack elevation">
+    <div class="d-flex justify-content-center align-items-center rack-loading-container">
+      <div class="spinner-border" role="status"><span class="visually-hidden">Loading rack elevation…</span></div>
+    </div>
+  </div>
+</div>
+</div>
 {% endlocalize %}
 </div>
 <h2 class="mt-4">Vertical devices — {{ face }}</h2>

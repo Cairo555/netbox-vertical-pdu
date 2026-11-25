@@ -26,6 +26,19 @@ def login(page, username, password):
     page.wait_for_url(BASE + "/")
 
 
+def native_fingerprint(svg):
+    """Compare actual native geometry, labels, role colors and theme colors."""
+    return svg.evaluate("""svg => ({
+        width: svg.getAttribute('width'), height: svg.getAttribute('height'),
+        background: getComputedStyle(svg).backgroundColor,
+        elements: [...svg.querySelectorAll('rect, text, image')].map(el => ({
+            tag: el.tagName, text: el.textContent,
+            attrs: [...el.attributes].map(a => [a.name, a.value]),
+            fill: getComputedStyle(el).fill, stroke: getComputedStyle(el).stroke
+        }))
+    })""")
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch()
     context = browser.new_context(viewport={"width": 1600, "height": 1100}, color_scheme="light")
@@ -34,8 +47,13 @@ with sync_playwright() as p:
     try:
         login(page, "smoke-admin", "Disposable-admin-42!")
         page.goto(BASE + fixture["rack"])
+        expect(page.locator(".rack_elevation > svg")).to_have_count(2)
+        native_front = native_fingerprint(page.locator(".rack_elevation > svg").nth(0))
+        native_rear = native_fingerprint(page.locator(".rack_elevation > svg").nth(1))
         page.get_by_role("link", name="Enhanced Rack Elevation", exact=True).click()
         expect(page.locator(".vpdu-scene")).to_be_visible()
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
+        assert native_fingerprint(page.locator(".vpdu-native > svg")) == native_rear
         assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation.css").status == 200
         record("Native rack tab and packaged stylesheet load in real Docker web server")
 
@@ -50,26 +68,29 @@ with sync_playwright() as p:
         assert boxes[0]["y"] + boxes[0]["height"] < boxes[1]["y"]
         assert boxes[2]["y"] + boxes[2]["height"] < boxes[3]["y"]
         outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-outlet > rect').all()]
-        assert len(outlet_boxes) == 13
+        assert len(outlet_boxes) == 11
         # Borders differ for occupied/free sockets; compare their centers.
         assert len({round(box["x"] + box["width"] / 2, 1) for box in outlet_boxes}) == 1
         assert all(a["y"] + a["height"] < b["y"] for a, b in zip(outlet_boxes, outlet_boxes[1:]))
-        expect(page.locator('.vpdu-scene a[aria-label="Half-U-shelf"] .vpdu-device')).to_have_attribute("height", "14.0")
+        half = page.locator('.vpdu-native a').filter(has=page.locator('text', has_text="Half-U-shelf"))
+        expect(half.locator("rect")).to_have_attribute("height", "11")
         row = page.locator("tbody tr").filter(has=page.get_by_role("link", name="PDU-L1", exact=True))
         expect(row.locator("td").nth(3)).to_have_text("3 / 10")
         assert page.locator(".vpdu-scene rect.vpdu-used").count() == 9
         record("Two stacked PDUs per side, vertical labeled sockets, half-U equipment and outlet occupancy")
 
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
-        light_fill = page.locator(".vpdu-rack").evaluate("el => getComputedStyle(el).fill")
+        light_fill = page.locator(".vpdu-native rect.slot").first.evaluate("el => getComputedStyle(el).fill")
         page.screenshot(path=str(OUTPUT / "rack-light.png"), full_page=True)
         page.locator("button.color-mode-toggle:visible").first.click()
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
-        dark_fill = page.locator(".vpdu-rack").evaluate("el => getComputedStyle(el).fill")
+        dark_fill = page.locator(".vpdu-native rect.slot").first.evaluate("el => getComputedStyle(el).fill")
         assert dark_fill != light_fill
         # Check persistence and capture without the native toggle's focus tooltip.
         page.reload()
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
+        dark_native = native_fingerprint(page.locator(".vpdu-native > svg"))
         page.screenshot(path=str(OUTPUT / "rack-dark.png"), full_page=True)
         # Keep the whole drawing below the fixed navigation bar while taking
         # the focused screenshot; auto-scrolling a taller element clips its top.
@@ -79,12 +100,26 @@ with sync_playwright() as p:
         page.set_viewport_size({"width": 1600, "height": 1100})
         record("Native light/dark toggle changes SVG colors")
 
+        page.goto(BASE + fixture["rack"])
+        expect(page.locator(".rack_elevation > svg")).to_have_count(2)
+        assert native_fingerprint(page.locator(".rack_elevation > svg").nth(1)) == dark_native
+        page.goto(BASE + fixture["elevation"])
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
+
         page.locator('.vpdu-scene a[aria-label="PDU-L1"]').click()
         page.wait_for_url(BASE + fixture["pdu_url"])
         page.goto(BASE + fixture["elevation"])
         page.get_by_role("link", name="Front", exact=True).click()
         expect(page.locator('.vpdu-scene a[aria-label="PDU-F1"]')).to_have_count(1)
         expect(page.locator('.vpdu-scene a[aria-label="PDU-L1"]')).to_have_count(0)
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
+        page.locator("button.color-mode-toggle:visible").first.click()
+        expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
+        assert native_fingerprint(page.locator(".vpdu-native > svg")) == native_front
+        page.reload()
+        expect(page.locator(".vpdu-native > svg")).to_be_visible()
+        page.screenshot(path=str(OUTPUT / "rack-front-native.png"), full_page=True)
+        record("Front/rear SVG geometry, labels, colors and backgrounds match the native rack page exactly")
         record("Clickable PDU and front/rear switching")
 
         page.goto(BASE + fixture["elevation"])
@@ -107,7 +142,7 @@ with sync_playwright() as p:
         page.locator("#id_lane").fill("3")
         page.locator("#id_height_u").fill("15")
         page.get_by_role("button", name="Save placement", exact=True).click()
-        expect(page.locator('.vpdu-scene a[aria-label="PDU-spare"] .vpdu-device')).to_have_attribute("height", "420.0")
+        expect(page.locator('.vpdu-scene a[aria-label="PDU-spare"] .vpdu-device')).to_have_attribute("height", "330.0")
         spare_row.get_by_role("link", name="Remove", exact=True).click()
         page.get_by_role("button", name="Remove placement", exact=True).click()
         expect(page.locator(".vpdu-scene")).to_be_visible()
@@ -123,8 +158,8 @@ with sync_playwright() as p:
         record("Mobile viewport contains wide elevation in horizontal scroll area")
         page.set_viewport_size({"width": 1600, "height": 1100})
         page.goto(BASE + fixture["descending"])
-        expect(page.locator(".vpdu-scene > svg text").first).to_have_text("11")
-        expect(page.locator(".vpdu-scene > svg text").last).to_have_text("28")
+        expect(page.locator(".vpdu-native text.unit").first).to_have_text("11")
+        expect(page.locator(".vpdu-native text.unit").last).to_have_text("28")
         page.screenshot(path=str(OUTPUT / "rack-descending.png"), full_page=True)
         record("Descending rack with non-default starting unit")
 
@@ -133,7 +168,8 @@ with sync_playwright() as p:
         reader.on("pageerror", lambda error: errors.append(str(error)))
         login(reader, "smoke-reader", "Disposable-reader-42!")
         reader.goto(BASE + fixture["elevation"])
-        expect(reader.locator('.vpdu-scene > a')).to_have_count(1)
+        expect(reader.locator('.vpdu-native > svg')).to_be_visible()
+        expect(reader.locator('.vpdu-pdus > a')).to_have_count(1)
         for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Outlet-13", "Compute-01"):
             assert secret not in reader.content()
         expect(reader.get_by_role("link", name="Add vertical device", exact=True)).to_have_count(0)

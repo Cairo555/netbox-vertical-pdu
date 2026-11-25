@@ -12,10 +12,10 @@ spec.loader.exec_module(layout)
 class LayoutTests(unittest.TestCase):
     def test_full_height(self):
         layout.validate_dimensions(42, 0, 42, 1)
-        self.assertEqual(layout.vertical_rect(42, 0, 42), {"y": 40, "height": 1176})
+        self.assertEqual(layout.vertical_rect(42, 0, 42), {"y": 40, "height": 924})
 
     def test_fractional_offset(self):
-        self.assertEqual(layout.vertical_rect(D(42), D("1.5"), D("20.25")), {"y": 607, "height": 567})
+        self.assertEqual(layout.vertical_rect(D(42), D("1.5"), D("20.25")), {"y": 485.5, "height": 445.5})
 
     def test_invalid_dimensions(self):
         for args in [(42, -1, 20, 1), (42, 0, 0, 1), (42, 10, 33, 1), (42, 0, 20, 0), (42, 0, 20, 17), (42, 0, "NaN", 1), (42, 0, "Infinity", 1)]:
@@ -33,21 +33,25 @@ class LayoutTests(unittest.TestCase):
         for cable, marked, expected in [(None, False, False), (12, False, True), (None, True, True)]:
             self.assertEqual(layout.occupied(NS(cable_id=cable, mark_connected=marked)), expected)
 
-    def scene(self, descending=False, placements=(), devices=(), outlets=None):
-        return layout.build_scene(NS(u_height=42, starting_unit=5, desc_units=descending), placements, devices, outlets or {})
+    def scene(self, descending=False, placements=(), outlets=None, **kwargs):
+        return layout.build_scene(NS(u_height=42, starting_unit=5, desc_units=descending), placements, outlets or {}, **kwargs)
 
     def test_empty_scene(self):
         scene = self.scene()
         self.assertEqual(scene["pdus"], [])
-        self.assertEqual(scene["units"][0]["label"], 46)
+        self.assertEqual(scene["native_width"], 269)
 
-    def test_descending_labels(self):
-        self.assertEqual(self.scene(True)["units"][0]["label"], 5)
+    def test_native_geometry_respects_configured_dimensions(self):
+        scene = self.scene(unit_height=35, unit_width=300)
+        self.assertEqual(scene["native_width"], 349)
+        self.assertEqual(scene["height"], 1542)
 
-    def test_regular_device_coordinates(self):
-        device = NS(position=D(5), device_type=NS(u_height=D(2)))
-        self.assertEqual(self.scene(devices=[device])["devices"][0]["y"], 1160)
-        self.assertEqual(self.scene(True, devices=[device])["devices"][0]["y"], 40)
+    def test_pdu_aligns_to_native_interior_in_both_numbering_directions(self):
+        p = NS(side="left", lane=1, offset_u=D(0), height_u=D(42), device_id=1, device=NS(name="PDU"))
+        for descending in (False, True):
+            scene = self.scene(descending, placements=[p], unit_height=35)
+            self.assertEqual(scene["pdus"][0]["y"], scene["native_y"] + 2)
+            self.assertEqual(scene["pdus"][0]["height"], 42 * 35)
 
     def test_multiple_lanes_and_sides(self):
         ps = [NS(side=side, lane=lane, offset_u=D(0), height_u=D(42), device_id=i, device=NS(name=str(i)))
@@ -70,7 +74,7 @@ class LayoutTests(unittest.TestCase):
         self.assertLess(top["y"] + top["height"], bottom["y"])
 
     def test_outlets_follow_single_column_with_names_and_type(self):
-        p = NS(side="left", lane=1, offset_u=D(0), height_u=D(20), device_id=1, device=NS(name="PDU"))
+        p = NS(side="left", lane=1, offset_u=D(0), height_u=D(24), device_id=1, device=NS(name="PDU"))
         outlets = [NS(name=f"Outlet-{i:02}", type="iec-60320-c13", cable_id=None, mark_connected=i == 2) for i in range(1, 13)]
         row = self.scene(placements=[p], outlets={1: outlets})["pdus"][0]
         points = row["outlets"]

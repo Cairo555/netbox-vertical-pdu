@@ -4,11 +4,12 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from dcim.models import Device, PowerOutlet, Rack
 from netbox.views import generic
+from netbox.config import get_config
+from dcim.constants import RACK_ELEVATION_DEFAULT_LEGEND_WIDTH, RACK_ELEVATION_DEFAULT_MARGIN_WIDTH, RACK_ELEVATION_BORDER_WIDTH
 from utilities.views import ViewTab, register_model_view
 
 from .forms import PlacementForm
@@ -55,10 +56,14 @@ class EnhancedRackView(generic.ObjectView):
                          "outlets": [{"name": o.name, "occupied": occupied(o)} for o in visible],
                          "can_change": p.pk in change_ids, "can_delete": p.pk in delete_ids,
                          "invalid": p in invalid})
-        devices = Device.objects.restrict(request.user, "view").filter(
-            rack=instance, position__isnull=False, device_type__u_height__gt=0
-        ).filter(Q(face=face) | Q(device_type__is_full_depth=True)).select_related("device_type")
-        return {"face": face, "scene": build_scene(instance, valid, devices, outlets), "rows": rows,
+        config = get_config()
+        scene = build_scene(instance, valid, outlets,
+                            unit_height=config.RACK_ELEVATION_DEFAULT_UNIT_HEIGHT,
+                            unit_width=config.RACK_ELEVATION_DEFAULT_UNIT_WIDTH,
+                            legend_width=RACK_ELEVATION_DEFAULT_LEGEND_WIDTH,
+                            margin_width=config.RACK_ELEVATION_DEFAULT_MARGIN_WIDTH,
+                            border_width=RACK_ELEVATION_BORDER_WIDTH)
+        return {"face": face, "scene": scene, "rows": rows,
                 "can_add": request.user.has_perm("netbox_vertical_pdu.add_verticalplacement")}
 
 

@@ -6,7 +6,7 @@ The 14 framework-independent tests were executed successfully locally on Python 
 
 [Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
 
-The automated suite contains 14 unit tests and 19 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
+The automated suite contains 14 unit tests and 21 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
 
 ## Local unit tests
 
@@ -18,7 +18,7 @@ python -m build
 python scripts/check_wheel.py
 ```
 
-These cover dimensions, bounds, touching/overlapping intervals, multiple lanes, ascending/descending and non-default numbering, short-device outlet clipping, and cabled/marked/free occupancy. They alone do not establish NetBox compatibility.
+These cover dimensions, bounds, touching/overlapping intervals, multiple lanes, native configurable rack dimensions and PDU alignment, short-device outlet clipping, and cabled/marked/free occupancy. Native numbering is checked in the live browser. Unit tests alone do not establish NetBox compatibility.
 
 ## NetBox integration tests
 
@@ -45,7 +45,7 @@ Never use a production database. The supplied configuration is test-only.
 
 The Docker job starts the exact 4.7.5/5.1.2 image using the real entrypoint and web server, plus a worker, PostgreSQL and separate Redis task/cache services. It waits for health checks, seeds an empty test database, then runs Chromium against the live web service. The stack is removed afterward; it has no production credentials or external volumes and its port is bound only to loopback.
 
-The browser checks cover native tab/static assets, two stacked PDUs per side, vertically arranged labeled sockets, half-U devices, real cabled/marked/free outlets, the native light/dark toggle, clickable PDUs, front/rear switching, placement CRUD and validation, a narrow mobile viewport, descending numbering, restricted user visibility and JavaScript errors. Multiple side-by-side lanes remain covered by unit tests. Five screenshots and a JSON report are saved for review. Automated assertions do not substitute for inspecting those images.
+The browser checks cover native tab/static assets, two stacked PDUs per side, vertically arranged labeled sockets, half-U devices, real cabled/marked/free outlets, the native light/dark toggle, clickable PDUs, front/rear switching, placement CRUD and validation, a narrow mobile viewport, descending numbering, restricted user visibility and JavaScript errors. They also compare the rendered rack geometry, labels, computed colors and background against the standard NetBox rack page on both faces and in dark mode. Multiple side-by-side lanes remain covered by unit tests. Screenshots and a JSON report are saved for review. Automated assertions do not substitute for inspecting those images.
 
 To reproduce on a machine with Docker Compose and Python:
 

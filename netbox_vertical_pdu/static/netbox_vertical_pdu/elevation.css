@@ -1,8 +1,10 @@
 .vpdu-scroll { overflow-x: auto; }
-.vpdu-scene { flex-shrink: 0; margin-inline: auto; font: 12px system-ui, sans-serif; }
-.vpdu-rack { fill: var(--tblr-bg-surface, #fff); stroke: var(--tblr-body-color, #222); }
+.vpdu-scene { position: relative; flex-shrink: 0; margin-inline: auto; }
+.vpdu-native { position: absolute; }
+.vpdu-pdus, .vpdu-pdus svg { background: transparent; font: 12px system-ui, sans-serif; }
+.vpdu-pdus text { text-anchor: start; dominant-baseline: auto; }
+.vpdu-pdus text[text-anchor="middle"] { text-anchor: middle; }
 .vpdu-device { fill: var(--tblr-bg-surface-secondary, #e9ecef); stroke: var(--tblr-primary, #066fd1); stroke-width: 2; }
-.vpdu-grid { stroke: var(--tblr-border-color, #ccc); }
 .vpdu-text { fill: var(--tblr-body-color, #222); }
 .vpdu-heading { font-weight: 600; }
 .vpdu-summary, .vpdu-outlet-status { font-size: 9px; }

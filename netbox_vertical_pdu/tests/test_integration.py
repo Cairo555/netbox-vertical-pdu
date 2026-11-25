@@ -195,5 +195,25 @@ class IntegrationTests(TestCase):
         self.placement.height_u = Decimal("20.01")
         self.placement.save()
         response = self.client.get(self.url())
-        self.assertContains(response, 'height="560.28"')
+        self.assertContains(response, 'height="440.22"')
         self.assertNotContains(response, '<script>alert("x")</script>')
+
+    def test_native_renderer_requested_on_selected_face(self):
+        self.client.force_login(self.admin)
+        for face in ("front", "rear"):
+            response = self.client.get(self.url() + f"?face={face}")
+            endpoint = reverse("dcim-api:rack-elevation", args=[self.rack.pk])
+            self.assertContains(response, f'hx-get="{endpoint}?face={face}&amp;render=svg')
+            self.assertContains(response, 'class="vpdu-native rack_elevation"')
+            self.assertNotContains(response, 'class="vpdu-rack"')
+
+    def test_native_endpoint_respects_device_permissions(self):
+        dtype = DeviceType.objects.create(manufacturer=self.dtype.manufacturer, model="server", slug="server", u_height=2)
+        Device.objects.create(name="Hidden server", site=self.site, rack=self.rack,
+                              device_type=dtype, role=self.role, position=1, face="front")
+        self.viewer()
+        endpoint = reverse("dcim-api:rack-elevation", args=[self.rack.pk])
+        response = self.client.get(endpoint + "?face=front&render=svg")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Hidden server")
+        self.assertContains(response, 'class="blocked"')

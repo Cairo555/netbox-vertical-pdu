@@ -1,9 +1,9 @@
 """Framework-independent physical geometry. Offsets are always measured from the bottom."""
 from decimal import Decimal
 
-UNIT = 28
+UNIT = 22
 LANE_WIDTH = 150
-RACK_WIDTH = 430
+RACK_WIDTH = 220
 TOP = 40
 
 
@@ -22,46 +22,39 @@ def overlaps(offset, height, other_offset, other_height):
     return offset < other_offset + other_height and other_offset < offset + height
 
 
-def vertical_rect(rack_height, offset, height):
-    return {"y": round(TOP + float(rack_height - offset - height) * UNIT, 4),
-            "height": round(float(height) * UNIT, 4)}
+def vertical_rect(rack_height, offset, height, unit_height=UNIT):
+    return {"y": round(TOP + float(rack_height - offset - height) * unit_height, 4),
+            "height": round(float(height) * unit_height, 4)}
 
 
 def occupied(outlet):
     return bool(outlet.cable_id or outlet.mark_connected)
 
 
-def build_scene(rack, placements, devices, outlets):
+def build_scene(rack, placements, outlets, *, unit_height=UNIT, unit_width=RACK_WIDTH,
+                legend_width=30, margin_width=15, border_width=2):
     """Accept only permission-filtered input; never query relations for extra objects."""
     left = max((p.lane for p in placements if p.side == "left"), default=0)
     right = max((p.lane for p in placements if p.side == "right"), default=0)
-    rack_x = left * LANE_WIDTH + 30
-    scene = {"width": rack_x + RACK_WIDTH + right * LANE_WIDTH + 30,
-             "height": TOP + rack.u_height * UNIT + 30, "rack_x": rack_x,
-             "rack_width": RACK_WIDTH, "rack_height": rack.u_height * UNIT,
-             "rack_label_x": rack_x + RACK_WIDTH / 2,
-             "pdus": [], "devices": [], "units": [], "side_labels": []}
+    # The native SVG includes its own unit legend, border and reservation margin.
+    native_x = left * LANE_WIDTH + 10
+    rack_x = native_x + legend_width + border_width
+    native_width = unit_width + legend_width + margin_width + 2 * border_width
+    right_x = native_x + native_width + 10
+    scene = {"width": right_x + right * LANE_WIDTH + 10,
+             "height": TOP + rack.u_height * unit_height + border_width + 30,
+             "native_x": native_x, "native_y": TOP - border_width,
+             "native_width": native_width, "unit_height": unit_height, "unit_width": unit_width,
+             "rack_label_x": rack_x + unit_width / 2,
+             "pdus": [], "side_labels": []}
     for side, count in (("left", left), ("right", right)):
         for lane in range(1, count + 1):
-            x = rack_x - lane * LANE_WIDTH if side == "left" else rack_x + RACK_WIDTH + (lane - 1) * LANE_WIDTH + 10
+            x = native_x - lane * LANE_WIDTH if side == "left" else right_x + (lane - 1) * LANE_WIDTH
             label = side.title() if count == 1 else f"{side.title()} · lane {lane}"
             scene["side_labels"].append({"x": x + 65, "text": label})
-    for i in range(rack.u_height):
-        label = rack.starting_unit + (i if rack.desc_units else rack.u_height - i - 1)
-        scene["units"].append({"label": label, "y": TOP + i * UNIT, "text_y": TOP + i * UNIT + 20})
-    for device in devices:
-        h = device.device_type.u_height
-        offset = device.position - rack.starting_unit
-        # NetBox positions identify the lowest-numbered occupied unit, including descending racks.
-        if rack.desc_units:
-            offset = rack.u_height - offset - h
-        rect = vertical_rect(rack.u_height, offset, h)
-        scene["devices"].append({"device": device, "x": rack_x + 40,
-                                 "y": rect["y"], "height": rect["height"],
-                                 "text_y": rect["y"] + min(20, rect["height"] - 2)})
     for p in placements:
-        rect = vertical_rect(rack.u_height, p.offset_u, p.height_u)
-        x = rack_x - p.lane * LANE_WIDTH if p.side == "left" else rack_x + RACK_WIDTH + (p.lane - 1) * LANE_WIDTH + 10
+        rect = vertical_rect(rack.u_height, p.offset_u, p.height_u, unit_height)
+        x = native_x - p.lane * LANE_WIDTH if p.side == "left" else right_x + (p.lane - 1) * LANE_WIDTH
         visible_outlets = outlets.get(p.device_id, [])
         # A single vertical strip of readable socket symbols. Do not squeeze a
         # large outlet count into unreadable glyphs; disclose overflow below.
