@@ -49,9 +49,10 @@ with sync_playwright() as p:
         assert boxes[0]["x"] == boxes[1]["x"] < boxes[2]["x"] == boxes[3]["x"]
         assert boxes[0]["y"] + boxes[0]["height"] < boxes[1]["y"]
         assert boxes[2]["y"] + boxes[2]["height"] < boxes[3]["y"]
-        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-outlet').all()]
+        outlet_boxes = [el.bounding_box() for el in page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-outlet > rect').all()]
         assert len(outlet_boxes) == 13
-        assert len({round(box["x"], 1) for box in outlet_boxes}) == 1
+        # Borders differ for occupied/free sockets; compare their centers.
+        assert len({round(box["x"] + box["width"] / 2, 1) for box in outlet_boxes}) == 1
         assert all(a["y"] + a["height"] < b["y"] for a, b in zip(outlet_boxes, outlet_boxes[1:]))
         expect(page.locator('.vpdu-scene a[aria-label="Half-U-shelf"] .vpdu-device')).to_have_attribute("height", "14.0")
         row = page.locator("tbody tr").filter(has=page.get_by_role("link", name="PDU-L1", exact=True))
@@ -127,7 +128,7 @@ with sync_playwright() as p:
         login(reader, "smoke-reader", "Disposable-reader-42!")
         reader.goto(BASE + fixture["elevation"])
         expect(reader.locator('.vpdu-scene > a')).to_have_count(1)
-        for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Secret-outlet", "Compute-01"):
+        for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Outlet-13", "Compute-01"):
             assert secret not in reader.content()
         expect(reader.get_by_role("link", name="Add vertical device", exact=True)).to_have_count(0)
         expect(reader.locator("tbody tr td").nth(3)).to_have_text("2 / 0")

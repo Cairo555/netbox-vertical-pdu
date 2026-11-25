@@ -58,7 +58,7 @@ with transaction.atomic():
             cable.save()
             outlets[1].refresh_from_db()
             assert outlets[1].cable_id == cable.pk
-    PowerOutlet.objects.create(device=pdus[0], name="Secret-outlet", type="iec-60320-c13")
+    PowerOutlet.objects.create(device=pdus[0], name="Outlet-13", type="iec-60320-c13")
     front = device("PDU-F1")
     VerticalPlacement.objects.create(device=front, rack=rack, face="front", side="right", height_u=42)
     spare = device("PDU-spare")
