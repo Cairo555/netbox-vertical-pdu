@@ -49,6 +49,7 @@ def visible_connections(user, rack, face, outlets):
             port = ports[peer.pk]
             result[outlet.pk].append({
                 "device": port.device, "url": cable.get_absolute_url(),
+                "device_url": port.device.get_absolute_url(),
                 "label": f"{outlet.device} / {outlet.name} → {port.device} / {port.name} ({cable.get_status_display()})",
                 "planned": cable.status != "connected",
             })

@@ -28,6 +28,8 @@ def login(page, username, password):
 
 def native_fingerprint(svg):
     """Compare actual native geometry, labels, role colors and theme colors."""
+    svg.page.mouse.move(0, 0)
+    svg.page.evaluate("document.activeElement?.blur()")
     return svg.evaluate("""svg => ({
         width: svg.getAttribute('width'), height: svg.getAttribute('height'),
         background: getComputedStyle(svg).backgroundColor,
@@ -54,7 +56,8 @@ with sync_playwright() as p:
         expect(page.locator(".vpdu-scene")).to_be_visible()
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
         assert native_fingerprint(page.locator(".vpdu-native > svg")) == native_rear
-        assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation-v0.2.0.css").status == 200
+        assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation-v0.3.0.css").status == 200
+        assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation-v0.3.0.js").status == 200
         record("Native rack tab and packaged stylesheet load in real Docker web server")
 
         boxes = []
@@ -76,19 +79,64 @@ with sync_playwright() as p:
         expect(half.locator("rect")).to_have_attribute("height", "11")
         row = page.locator("tbody tr").filter(has=page.get_by_role("link", name="PDU-L1", exact=True))
         expect(row.locator("td").nth(3)).to_have_text("3 / 10")
-        assert page.locator(".vpdu-scene rect.vpdu-used").count() == 9
+        assert page.locator(".vpdu-scene rect.vpdu-used").count() == 10
         record("Two stacked PDUs per side, vertical labeled sockets, half-U equipment and outlet occupancy")
 
-        expect(page.locator('.vpdu-connection')).to_have_count(1)
-        expect(page.locator('.vpdu-connection')).to_have_attribute('href', fixture['cable_url'])
-        expect(page.locator('.vpdu-connection title')).to_contain_text('PDU-L1 / Outlet-01 → Server-019 / PSU-1')
+        expect(page.locator('.vpdu-connection')).to_have_count(3)
+        connection1 = page.locator(f'.vpdu-connection[data-outlet-id="{fixture["outlet1_id"]}"]')
+        connection2 = page.locator(f'.vpdu-connection[data-outlet-id="{fixture["outlet2_id"]}"]')
+        expect(connection1).to_have_attribute('href', fixture['cable_url'])
+        expect(connection1.locator('title')).to_contain_text('PDU-L1 / Outlet-01 → Server-019 / PSU-1')
         target = page.locator('.vpdu-native a').filter(has=page.locator('text', has_text='Server-019')).locator('rect')
         target_box = target.bounding_box()
-        endpoint = page.locator('.vpdu-connection circle').bounding_box()
+        endpoint = connection1.locator('circle').bounding_box()
         assert abs(endpoint['x'] + endpoint['width'] / 2 - target_box['x'] - 6) < 1.5
         assert abs(endpoint['y'] + endpoint['height'] / 2 - target_box['y'] - target_box['height'] / 2) < 1.5
-        expect(page.locator('.vpdu-connection path')).not_to_have_attribute('stroke-dasharray', '6 4')
+        expect(connection1.locator('path')).not_to_have_attribute('stroke-dasharray', '6 4')
         record("A real outlet cable ends at the correct full-depth server on the opposite rack face")
+
+        socket1 = page.locator(f'.vpdu-outlet[data-outlet-id="{fixture["outlet1_id"]}"]')
+        socket2 = page.locator(f'.vpdu-outlet[data-outlet-id="{fixture["outlet2_id"]}"]')
+        right_socket = page.locator(f'.vpdu-outlet[data-outlet-id="{fixture["right_outlet_id"]}"]')
+        server19 = page.locator('.vpdu-native a').filter(has=page.locator('text', has_text='Server-019'))
+        server18 = page.locator('.vpdu-native a').filter(has=page.locator('text', has_text='Server-018'))
+        page.set_viewport_size({"width": 1600, "height": 2000})
+        page.evaluate("window.scrollTo(0, 0)")
+        socket1.locator('.vpdu-socket').hover()
+        expect(connection1).to_have_class('vpdu-connection vpdu-highlight')
+        expect(connection2).to_have_class('vpdu-connection')
+        expect(server19).to_have_class('vpdu-highlight')
+        expect(page.locator('.vpdu-outlet.vpdu-highlight')).to_have_count(1)
+        assert connection2.evaluate('el => getComputedStyle(el).opacity') == '0.18'
+        assert socket1.locator('.vpdu-socket').evaluate('el => getComputedStyle(el).stroke') == 'rgb(0, 107, 230)'
+        expect(page.locator('.vpdu-highlight-overlay path')).to_have_count(1)
+        assert page.locator('.vpdu-connections').evaluate("el => el.lastElementChild.matches('.vpdu-highlight-overlay')")
+        assert page.locator('.vpdu-highlight-overlay path').evaluate('el => getComputedStyle(el).pointerEvents') == 'none'
+        page.locator('.vpdu-scene').screenshot(path=str(OUTPUT / 'hover-outlet.png'))
+        socket2.locator('.vpdu-socket').hover()
+        expect(connection2).to_have_class('vpdu-connection vpdu-highlight')
+        expect(connection1).to_have_class('vpdu-connection')
+        expect(server18).to_have_class('vpdu-highlight')
+        expect(server19).not_to_have_class('vpdu-highlight')
+        server19.locator('rect').hover()
+        expect(page.locator('.vpdu-connection.vpdu-highlight')).to_have_count(2)
+        expect(socket1).to_have_class('vpdu-outlet vpdu-highlight')
+        expect(right_socket).to_have_class('vpdu-outlet vpdu-highlight')
+        expect(socket2).to_have_class('vpdu-outlet')
+        expect(page.locator('.vpdu-highlight-overlay path')).to_have_count(2)
+        page.locator('.vpdu-scene').screenshot(path=str(OUTPUT / 'hover-server.png'))
+        page.mouse.move(0, 0)
+        expect(page.locator('.vpdu-highlight')).to_have_count(0)
+        expect(page.locator('.vpdu-highlight-overlay')).to_have_count(0)
+        socket1.focus()
+        expect(connection1).to_have_class('vpdu-connection vpdu-highlight')
+        socket1.evaluate('el => el.blur()')
+        expect(page.locator('.vpdu-highlight')).to_have_count(0)
+        page.locator('.vpdu-pdu[data-device="PDU-L1"] .vpdu-outlet').nth(2).hover()
+        expect(page.locator('.vpdu-highlight')).to_have_count(0)
+        page.mouse.move(0, 0)
+        page.set_viewport_size({"width": 1600, "height": 1100})
+        record("Outlet/server hover isolates overlapping lines, highlights both feeds, paints on top, resets and supports keyboard focus")
 
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
         light_fill = page.locator(".vpdu-native rect.slot").first.evaluate("el => getComputedStyle(el).fill")
@@ -108,6 +156,11 @@ with sync_playwright() as p:
         page.set_viewport_size({"width": 1600, "height": 2000})
         page.evaluate("window.scrollTo(0, 0)")
         page.locator(".vpdu-scene").screenshot(path=str(OUTPUT / "rack-diagram-dark.png"))
+        socket1.locator('.vpdu-socket').hover()
+        expect(connection1).to_have_class('vpdu-connection vpdu-highlight')
+        assert page.locator('.vpdu-highlight-overlay path').evaluate('el => getComputedStyle(el).stroke') == 'rgb(114, 183, 255)'
+        page.locator('.vpdu-scene').screenshot(path=str(OUTPUT / 'hover-outlet-dark.png'))
+        page.mouse.move(0, 0)
         page.set_viewport_size({"width": 1600, "height": 1100})
         record("Native light/dark toggle changes SVG colors")
 
@@ -117,10 +170,10 @@ with sync_playwright() as p:
         page.goto(BASE + fixture["elevation"])
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
 
-        line = page.locator('.vpdu-connection path')
+        line = connection1.locator('path')
         line.scroll_into_view_if_needed()
         hit = line.evaluate("""el => {
-            const p = el.getPointAtLength(el.getTotalLength() / 2);
+            const p = el.getPointAtLength(4);
             const screen = new DOMPoint(p.x, p.y).matrixTransform(el.getScreenCTM());
             return {x: screen.x, y: screen.y};
         }""")
@@ -209,6 +262,8 @@ with sync_playwright() as p:
             assert secret not in reader.content()
         expect(reader.get_by_role("link", name="Add vertical device", exact=True)).to_have_count(0)
         expect(reader.locator('.vpdu-connection')).to_have_count(0)
+        reader.locator('.vpdu-outlet').first.hover()
+        expect(reader.locator('.vpdu-highlight-overlay')).to_have_count(0)
         expect(reader.locator("tbody tr td").nth(3)).to_have_text("2 / 0")
         reader.screenshot(path=str(OUTPUT / "rack-restricted.png"), full_page=True)
         record("Restricted user sees only permitted device/outlets and no edit controls")

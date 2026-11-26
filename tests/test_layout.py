@@ -115,11 +115,13 @@ class LayoutTests(unittest.TestCase):
 
     def test_cable_lines_from_each_side_reach_native_device_center(self):
         target = NS(position=D(5), device_type=NS(u_height=D(2)))
-        link = {"device": target, "url": "/dcim/cables/1/", "label": "PDU / 1 → server / PSU", "planned": False}
+        link = {"device": target, "device_url": "/dcim/devices/19/", "url": "/dcim/cables/1/", "label": "PDU / 1 → server / PSU", "planned": False}
         for side in ("left", "right"):
             p = NS(side=side, lane=1, offset_u=D(20), height_u=D(4), device_id=1, device=NS(name="PDU"))
             scene = self.scene(placements=[p], outlets={1: [outlet("1", cable_id=1, mark_connected=False)]}, connections={"1": [link]})
             line = scene["connections"][0]
+            self.assertEqual(line["outlet_id"], "1")
+            self.assertEqual(line["device_url"], "/dcim/devices/19/")
             self.assertEqual(line["end_y"], 942)
             rack_left = scene["native_x"] + 32
             self.assertEqual(line["end_x"], rack_left + (6 if side == "left" else 214))
@@ -130,7 +132,7 @@ class LayoutTests(unittest.TestCase):
     def test_cable_line_matches_descending_half_unit_and_custom_scale(self):
         p = NS(side="left", lane=1, offset_u=D(0), height_u=D(4), device_id=1, device=NS(name="PDU"))
         target = NS(position=D("5.5"), device_type=NS(u_height=D("0.5")))
-        link = {"device": target, "url": "/dcim/cables/1/", "label": "test", "planned": True}
+        link = {"device": target, "device_url": "/dcim/devices/19/", "url": "/dcim/cables/1/", "label": "test", "planned": True}
         scene = self.scene(True, placements=[p], outlets={1: [outlet("1", cable_id=1, mark_connected=False)]},
                            connections={"1": [link]}, unit_height=25)
         self.assertEqual(scene["connections"][0]["end_y"], 58)

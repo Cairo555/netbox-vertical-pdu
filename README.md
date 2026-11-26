@@ -2,7 +2,7 @@
 
 Native, independent NetBox plugin adding an **Enhanced Rack Elevation** tab to racks. No NetBox core modifications or other visualization plugins required.
 
-Version 0.2.0 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
+Version 0.3.0 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
 
 ## Features
 
@@ -13,6 +13,7 @@ Version 0.2.0 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.
 - Physical height and bottom offset in U, to two decimal places (1 U = 44.45 mm). These do not consume rack units.
 - Existing NetBox Power Outlets: cabled or marked-connected = occupied; otherwise free. This is connection occupancy, not measured power.
 - Direct power cable lines from an outlet row to the edge of its connected rack-mounted server. Hover for both endpoint names; click for native cable details. Non-connected cable statuses use dashed lines.
+- Hover or keyboard-focus an outlet to highlight its line and server in blue; hover/focus a server to highlight all its visible feeds and outlets. Unrelated lines dim, and highlighted lines are drawn above overlapping segments. Leaving the selection restores the normal view. Works with NetBox's asynchronously loaded rack SVG and both themes.
 - Theme-aware light/dark colors, keyboard links, text outlet status and a scrollable wide elevation.
 - Object permissions for racks, devices, placements and outlets, including constrained add/change permissions.
 - Own migration-backed placement model; existing devices, outlets and cables remain authoritative.

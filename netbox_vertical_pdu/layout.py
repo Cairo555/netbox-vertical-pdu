@@ -116,5 +116,6 @@ def build_scene(rack, placements, outlets, *, connections=None, unit_height=UNIT
                     "path": f"M{start_x} {start_y}H{trunk_x}V{end_y}H{end_x}",
                     "end_x": end_x, "end_y": end_y,
                     "url": link["url"], "label": link["label"], "planned": link["planned"],
+                    "outlet_id": point["id"], "device_url": link["device_url"],
                 })
     return scene

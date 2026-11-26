@@ -251,6 +251,9 @@ class IntegrationTests(TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn("Server-019 / PSU-1", lines[0]["label"])
         self.assertEqual(lines[0]["url"], cable.get_absolute_url())
+        self.assertEqual(lines[0]["outlet_id"], self.free.pk)
+        self.assertEqual(lines[0]["device_url"], device.get_absolute_url())
+        self.assertContains(response, f'data-device-url="{device.get_absolute_url()}"')
         self.assertContains(response, 'class="vpdu-connection"')
 
     def test_cable_permission_required_for_connection(self):

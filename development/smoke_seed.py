@@ -49,7 +49,9 @@ with transaction.atomic():
         p.full_clean()
         p.save()
         placements.append(p)
-        outlets = [PowerOutlet.objects.create(device=pdu, name=f"Outlet-{i:02}", type="iec-60320-c13", mark_connected=i in (2, 4)) for i in range(1, 13)]
+        outlets = [PowerOutlet.objects.create(device=pdu, name=f"Outlet-{i:02}", type="iec-60320-c13", mark_connected=i in ((4,) if name == "PDU-L1" else (2, 4))) for i in range(1, 13)]
+        if name == "PDU-R1":
+            right_outlets = outlets
         if name == "PDU-L1":
             first_outlets = outlets
             port = PowerPort.objects.create(device=compute, name="PSU-1", type="iec-60320-c14")
@@ -59,6 +61,15 @@ with transaction.atomic():
             outlets[0].refresh_from_db()
             assert outlets[0].cable_id == cable.pk
     PowerOutlet.objects.create(device=pdus[0], name="Outlet-13", type="iec-60320-c13")
+    second_server = device("Server-018", server_type, position=22, face="front")
+    second_port = PowerPort.objects.create(device=second_server, name="PSU-1", type="iec-60320-c14")
+    second_cable = Cable(a_terminations=[first_outlets[1]], b_terminations=[second_port], status="connected")
+    second_cable.full_clean()
+    second_cable.save()
+    redundant_port = PowerPort.objects.create(device=compute, name="PSU-2", type="iec-60320-c14")
+    redundant_cable = Cable(a_terminations=[right_outlets[0]], b_terminations=[redundant_port], status="connected")
+    redundant_cable.full_clean()
+    redundant_cable.save()
     front = device("PDU-F1")
     VerticalPlacement.objects.create(device=front, rack=rack, face="front", side="right", height_u=4, offset_u=18)
     front_outlets = [PowerOutlet.objects.create(device=front, name=str(i), type="iec-60320-c13") for i in range(7)]
@@ -88,6 +99,9 @@ manifest = {
     "pdu_url": pdus[0].get_absolute_url(),
     "front_outlet_url": front_outlets[0].get_absolute_url(),
     "cable_url": cable.get_absolute_url(),
+    "outlet1_id": first_outlets[0].pk,
+    "outlet2_id": first_outlets[1].pk,
+    "right_outlet_id": right_outlets[0].pk,
 }
 Path("/tmp/vpdu-smoke.json").write_text(json.dumps(manifest), encoding="utf-8")
 print("Created isolated rack/browser fixtures.")
