@@ -2,7 +2,7 @@
 
 Native, independent NetBox plugin adding an **Enhanced Rack Elevation** tab to racks. No NetBox core modifications or other visualization plugins required.
 
-Version 0.3.1 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
+Version 0.3.2 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
 
 Outlet details include permission-filtered links to connected devices, power ports and cables, including destinations outside the displayed rack. The diagram shows actual cable connections without physical measurement lines.
 

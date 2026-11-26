@@ -130,7 +130,7 @@ class PlacementEditView(PlacementAccessMixin, View):
         rack = self.get_rack(request, rack_pk)
         placement = self.get_placement(request, rack, pk, "change" if pk else "add")
         form = PlacementForm(instance=placement, user=request.user, rack=rack)
-        return render(request, "netbox_vertical_pdu/edit.html", {"object": rack, "form": form})
+        return render(request, "netbox_vertical_pdu/edit.html", {"object": rack, "form": form, "tab": EnhancedRackView.tab})
 
     def post(self, request, rack_pk, pk=None):
         action = "change" if pk else "add"
@@ -156,14 +156,14 @@ class PlacementEditView(PlacementAccessMixin, View):
             form.add_error(None, "; ".join(error.messages))
         except IntegrityError:
             form.add_error(None, "The placement conflicted with another update. Reload and try again.")
-        return render(request, "netbox_vertical_pdu/edit.html", {"object": rack, "form": form})
+        return render(request, "netbox_vertical_pdu/edit.html", {"object": rack, "form": form, "tab": EnhancedRackView.tab})
 
 
 class PlacementDeleteView(PlacementAccessMixin, View):
     def get(self, request, rack_pk, pk):
         rack = self.get_rack(request, rack_pk)
         placement = self.get_placement(request, rack, pk, "delete")
-        return render(request, "netbox_vertical_pdu/delete.html", {"object": rack, "placement": placement})
+        return render(request, "netbox_vertical_pdu/delete.html", {"object": rack, "placement": placement, "tab": EnhancedRackView.tab})
 
     def post(self, request, rack_pk, pk):
         with transaction.atomic():

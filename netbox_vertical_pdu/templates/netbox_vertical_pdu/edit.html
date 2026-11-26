@@ -1,6 +1,13 @@
 {% extends 'dcim/rack/base.html' %}
 {% block content %}
 <h2>Vertical device placement</h2>
+{% if not form.has_eligible_devices %}
+<div class="alert alert-info" role="status">
+  No available 0U devices in this rack that you may view. In NetBox Devices, create or edit your PDU:
+  assign it to <strong>{{ object }}</strong>, use a device type with height <strong>0U</strong>,
+  and leave the rack-unit position empty. Then return here. For an already placed device, use Edit on the elevation page.
+</div>
+{% endif %}
 <form method="post" class="card card-body">
   {% csrf_token %}
   {{ form.as_p }}

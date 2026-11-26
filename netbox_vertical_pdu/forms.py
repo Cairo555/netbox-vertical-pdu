@@ -16,5 +16,13 @@ class PlacementForm(forms.ModelForm):
         self.instance.rack = rack
         self.fields["device"].queryset = Device.objects.restrict(user, "view").filter(
             rack=rack, device_type__u_height=0, position__isnull=True)
+        placed = VerticalPlacement.objects.exclude(pk=self.instance.pk).values("device_id")
+        self.fields["device"].queryset = self.fields["device"].queryset.exclude(pk__in=placed).order_by("name", "pk")
+        self.has_eligible_devices = self.fields["device"].queryset.exists()
+        self.fields["device"].help_text = (
+            "Choose an existing 0U device assigned to this rack, with no rack-unit position. "
+            "Devices already placed are available through Edit on the elevation page."
+        )
+        self.fields["device"].empty_label = "Select a device" if self.has_eligible_devices else "No available 0U devices in this rack"
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-select" if isinstance(field.widget, forms.Select) else "form-control"

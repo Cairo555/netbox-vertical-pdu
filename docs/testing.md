@@ -6,7 +6,7 @@ The 19 framework-independent tests were executed successfully locally. Package c
 
 [Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
 
-The automated suite contains 19 unit tests and 31 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
+The automated suite contains 19 unit tests and 34 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
 
 The outlet-details regression checks cover visible device/port links, destinations outside the rendered rack, and hidden endpoints. Geometry checks cover restoring physical size after editing; Chromium checks that no physical measurement lines are drawn.
 

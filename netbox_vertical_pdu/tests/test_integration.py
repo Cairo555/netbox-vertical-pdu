@@ -66,6 +66,38 @@ class IntegrationTests(TestCase):
         self.assertContains(response, "PDU-visible")
         self.assertContains(response, self.device.get_absolute_url())
 
+    def test_placement_forms_keep_enhanced_tab_active(self):
+        from netbox_vertical_pdu.views import EnhancedRackView
+        self.client.force_login(self.admin)
+        for action, pk in (("add", None), ("edit", self.placement.pk), ("delete", self.placement.pk)):
+            response = self.client.get(self.url(action, pk))
+            self.assertEqual(response.context["tab"], EnhancedRackView.tab)
+        response = self.client.post(self.url("edit", self.placement.pk), self.payload(height_u="99"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["tab"], EnhancedRackView.tab)
+
+    def test_device_choices_and_empty_guidance(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url("add"))
+        self.assertFalse(response.context["form"].has_eligible_devices)
+        self.assertContains(response, "No available 0U devices in this rack")
+        spare = self.make_device("Available-PDU")
+        remote = self.make_device("Other-rack-PDU")
+        remote.rack = self.other_rack
+        remote.save()
+        response = self.client.get(self.url("add"))
+        self.assertEqual(list(response.context["form"].fields["device"].queryset), [spare])
+        response = self.client.get(self.url("edit", self.placement.pk))
+        self.assertIn(self.device, response.context["form"].fields["device"].queryset)
+
+    def test_device_choices_respect_permissions(self):
+        self.make_device("Hidden-spare")
+        self.viewer()
+        self.grant(VerticalPlacement, ["add"])
+        response = self.client.get(self.url("add"))
+        self.assertFalse(response.context["form"].has_eligible_devices)
+        self.assertNotContains(response, "Hidden-spare")
+
     def test_event_serialization(self):
         from extras.events import serialize_for_event
         data = serialize_for_event(self.placement)
