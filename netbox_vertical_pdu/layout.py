@@ -63,14 +63,13 @@ def build_scene(rack, placements, outlets, *, connections=None, unit_height=UNIT
         rect = vertical_rect(rack.u_height, p.offset_u, p.height_u, unit_height)
         x = native_x - p.lane * LANE_WIDTH if p.side == "left" else right_x + (p.lane - 1) * LANE_WIDTH
         visible_outlets = sorted(outlets.get(p.device_id, []), key=outlet_sort_key)
-        # Keep the native rack scale. Expand only the adjacent outlet card,
-        # and mark the actual mounting span separately when it differs.
+        # Keep the native rack scale; expand the card to keep every outlet readable.
         expanded = bool(visible_outlets) and rect["height"] < 64 + len(visible_outlets) * 32
         display_height = 80 + len(visible_outlets) * 32 if expanded else rect["height"]
         display_y = max(rect["y"], next_y.get((p.side, p.lane), TOP))
         next_y[p.side, p.lane] = display_y + display_height + 16
         scene["height"] = max(scene["height"], display_y + display_height + 30)
-        header = 60 if expanded else 44
+        header = 44
         available_height = max(0, display_height - header - 20)
         spacing = available_height / len(visible_outlets) if visible_outlets else 0
         points = []
@@ -80,15 +79,9 @@ def build_scene(rack, placements, outlets, *, connections=None, unit_height=UNIT
                            "occupied": occupied(outlet), "kind": kind, "iec": kind in ("C13", "C19"),
                            "url": outlet.get_absolute_url(), "id": getattr(outlet, "pk", None),
                            "x": x + 14, "y": round(display_y + header + (i + 0.5) * spacing - 12, 4)})
-        marker = ""
-        if expanded or display_y != rect["y"]:
-            # Keep physical size indicators outside the cable corridor.
-            mx = x - 6 if p.side == "left" else x + 136
-            top, bottom = rect["y"], rect["y"] + rect["height"]
-            marker = f"M{mx - 3} {top}h6 M{mx} {top}V{bottom} M{mx - 3} {bottom}h6"
         scene["pdus"].append({"placement": p, "device": p.device, "x": x,
                               "total": len(visible_outlets), "used": sum(occupied(o) for o in visible_outlets),
-                              "expanded": expanded, "marker": marker,
+                              "expanded": expanded,
                               "physical_y": rect["y"], "physical_height": rect["height"],
                               "y": display_y, "height": display_height, "outlets": points})
     for row in scene["pdus"]:

@@ -72,7 +72,6 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(len(row["outlets"]), 1)
         self.assertEqual(row["physical_height"], 22)
         self.assertTrue(row["expanded"])
-        self.assertTrue(row["marker"])
         self.assertGreaterEqual(scene["height"], row["y"] + row["height"])
 
     def test_stacked_pdus_share_x_and_do_not_overlap(self):
@@ -82,7 +81,7 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(top["x"], bottom["x"])
         self.assertLess(top["y"] + top["height"], bottom["y"])
 
-    def test_resizing_back_restores_scene_with_external_brackets(self):
+    def test_resizing_back_restores_scene(self):
         for side in ("left", "right"):
             p = NS(side=side, lane=1, offset_u=D(20), height_u=D(12), device_id=1, device=NS(name="PDU"))
             outlets = {1: [outlet(str(i), cable_id=None, mark_connected=False) for i in range(7)]}
@@ -92,9 +91,6 @@ class LayoutTests(unittest.TestCase):
             p.height_u = D(12)
             after = self.scene(placements=[p], outlets=outlets)["pdus"][0]
             self.assertEqual(before, after)
-            self.assertNotIn("L", after["marker"])
-            mx = after["x"] - 6 if side == "left" else after["x"] + 136
-            self.assertIn(f"M{mx} ", after["marker"])
 
     def test_outlets_follow_single_column_with_names_and_type(self):
         p = NS(side="left", lane=1, offset_u=D(0), height_u=D(24), device_id=1, device=NS(name="PDU"))
@@ -125,7 +121,6 @@ class LayoutTests(unittest.TestCase):
         top, bottom = self.scene(placements=ps, outlets=outlets)["pdus"]
         self.assertLess(top["y"] + top["height"], bottom["y"])
         self.assertEqual(top["physical_y"] + top["physical_height"], bottom["physical_y"])
-        self.assertTrue(bottom["marker"])
 
     def test_cable_lines_from_each_side_reach_native_device_center(self):
         target = NS(position=D(5), device_type=NS(u_height=D(2)))

@@ -4,13 +4,13 @@ Native, independent NetBox plugin adding an **Enhanced Rack Elevation** tab to r
 
 Version 0.3.1 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
 
-Outlet details include permission-filtered links to connected devices, power ports and cables, including destinations outside the displayed rack. Physical height brackets sit outside the outlet cards, away from power cable lines, with no diagonal connector.
+Outlet details include permission-filtered links to connected devices, power ports and cables, including destinations outside the displayed rack. The diagram shows actual cable connections without physical measurement lines.
 
 ## Features
 
 - The actual native NetBox rack SVG, with clickable devices, role colors, device images, reservations, unit labels and theme colors; vertical 0U devices are drawn alongside it.
 - Uses NetBox's configured rack unit width/height, keeping physical PDU mounting spans aligned with the native rack.
-- All permitted outlets appear in a single, naturally numbered column with links to their native NetBox pages for cable management. Short PDU cards expand to fit; a bracket marks the true mounting span and cards in the same lane stay apart.
+- All permitted outlets appear in a single, naturally numbered column with links to their native NetBox pages for cable management. Short PDU cards expand to fit and cards in the same lane stay apart.
 - Separate front/rear views; up to 16 lanes per side, with multiple non-overlapping devices per lane.
 - Physical height and bottom offset in U, to two decimal places (1 U = 44.45 mm). These do not consume rack units.
 - Existing NetBox Power Outlets: cabled or marked-connected = occupied; otherwise free. This is connection occupancy, not measured power.
@@ -28,7 +28,7 @@ Outlet details include permission-filtered links to connected devices, power por
 4. Select face, side, lane, bottom offset and physical height. A full-height device in a 42U rack uses offset 0 and height 42.
 5. To stack two PDUs per side in a 42U rack, use **lane 1 for both**: e.g. height 20 / bottom offset 0 for the lower PDU and height 20 / bottom offset 22 for the upper PDU. Apply the same arrangement on the other side. These are example dimensions; enter the actual physical heights and positions.
 
-Different lanes (1/2/…) put devices **side by side**, for racks mounted that way. Lane 1 is closest to the rack. Socket symbols form one vertical column with outlet names, connector labels and occupied/free status; their spacing is schematic, not a manufacturer drawing. All visible outlets are drawn: when necessary, the card expands and a bracket marks the actual physical height/position. Expanded cards can extend below the rack. Clicking an outlet opens its existing NetBox page; cable creation and permissions remain managed by NetBox.
+Different lanes (1/2/…) put devices **side by side**, for racks mounted that way. Lane 1 is closest to the rack. Socket symbols form one vertical column with outlet names, connector labels and occupied/free status; their spacing is schematic, not a manufacturer drawing. All visible outlets are drawn: when necessary, the card expands. Expanded cards can extend below the rack. Clicking an outlet opens its existing NetBox page; cable creation and permissions remain managed by NetBox.
 
 Left/right are **as viewed from the selected face**. A placement appears on its selected face only; it is not mirrored onto the opposite face. Physical offsets always start at the rack bottom regardless of numbering direction or starting unit. Regular full-depth equipment appears on both faces.
 

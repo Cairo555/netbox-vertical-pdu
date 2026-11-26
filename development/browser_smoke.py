@@ -88,17 +88,8 @@ with sync_playwright() as p:
         expect(row.get_by_role("link", name="PSU-1", exact=True)).to_have_count(2)
         row.screenshot(path=str(OUTPUT / "outlet-details.png"))
         row.locator("summary").click()
-        for pdu in page.locator('.vpdu-pdu').all():
-            marker = pdu.locator('.vpdu-mount')
-            if marker.count():
-                assert 'L' not in marker.get_attribute('d')
-                # Compare SVG coordinates, independent of viewport scrollbars
-                # appearing/disappearing while the details element collapses.
-                marker_box = marker.evaluate('(el) => { const b = el.getBBox(); return {x:b.x, width:b.width}; }')
-                card = pdu.locator('.vpdu-strip')
-                card_x, card_width = float(card.get_attribute('x')), float(card.get_attribute('width'))
-                assert marker_box['x'] + marker_box['width'] < card_x or marker_box['x'] > card_x + card_width, (marker_box, card_x, card_width)
-        record("Outlet details show connected devices and ports; physical brackets stay outside cards without diagonal lines")
+        expect(page.locator('.vpdu-mount')).to_have_count(0)
+        record("Outlet details show connected devices and ports; no physical measurement lines are drawn")
 
         expect(page.locator('.vpdu-connection')).to_have_count(3)
         connection1 = page.locator(f'.vpdu-connection[data-outlet-id="{fixture["outlet1_id"]}"]')
@@ -218,7 +209,7 @@ with sync_playwright() as p:
         record("Front/rear SVG geometry, labels, colors and backgrounds match the native rack page exactly")
         short_pdu = page.locator('.vpdu-pdu[data-device="PDU-F1"]')
         expect(short_pdu.locator('.vpdu-outlet')).to_have_count(7)
-        expect(short_pdu.locator('.vpdu-mount')).to_have_count(1)
+        expect(short_pdu.locator('.vpdu-mount')).to_have_count(0)
         assert short_pdu.locator('.vpdu-outlet-name').all_text_contents() == [str(i) for i in range(7)]
         short_boxes = [el.bounding_box() for el in short_pdu.locator('.vpdu-socket').all()]
         assert all(a['y'] + a['height'] < b['y'] for a, b in zip(short_boxes, short_boxes[1:]))
