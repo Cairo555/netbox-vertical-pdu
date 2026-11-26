@@ -1,6 +1,10 @@
 .vpdu-scroll { overflow-x: auto; }
 .vpdu-scene { position: relative; flex-shrink: 0; margin-inline: auto; }
 .vpdu-native { position: absolute; }
+.vpdu-connections { position: absolute; inset: 0; z-index: 2; background: transparent; pointer-events: none; }
+.vpdu-connection path { fill: none; stroke: #d97706; stroke-width: 2.5; stroke-linejoin: round; pointer-events: stroke; }
+.vpdu-connection circle { fill: #d97706; stroke: none; }
+.vpdu-connection:hover path, .vpdu-connection:focus path { stroke-width: 4; }
 .vpdu-pdus, .vpdu-pdus svg { background: transparent; font: 12px system-ui, sans-serif; }
 .vpdu-pdus text { text-anchor: start; dominant-baseline: auto; }
 .vpdu-pdus text[text-anchor="middle"] { text-anchor: middle; }

@@ -54,7 +54,7 @@ with sync_playwright() as p:
         expect(page.locator(".vpdu-scene")).to_be_visible()
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
         assert native_fingerprint(page.locator(".vpdu-native > svg")) == native_rear
-        assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation.css").status == 200
+        assert context.request.get(BASE + "/static/netbox_vertical_pdu/elevation-v0.2.0.css").status == 200
         record("Native rack tab and packaged stylesheet load in real Docker web server")
 
         boxes = []
@@ -78,6 +78,17 @@ with sync_playwright() as p:
         expect(row.locator("td").nth(3)).to_have_text("3 / 10")
         assert page.locator(".vpdu-scene rect.vpdu-used").count() == 9
         record("Two stacked PDUs per side, vertical labeled sockets, half-U equipment and outlet occupancy")
+
+        expect(page.locator('.vpdu-connection')).to_have_count(1)
+        expect(page.locator('.vpdu-connection')).to_have_attribute('href', fixture['cable_url'])
+        expect(page.locator('.vpdu-connection title')).to_contain_text('PDU-L1 / Outlet-01 → Server-019 / PSU-1')
+        target = page.locator('.vpdu-native a').filter(has=page.locator('text', has_text='Server-019')).locator('rect')
+        target_box = target.bounding_box()
+        endpoint = page.locator('.vpdu-connection circle').bounding_box()
+        assert abs(endpoint['x'] + endpoint['width'] / 2 - target_box['x'] - 6) < 1.5
+        assert abs(endpoint['y'] + endpoint['height'] / 2 - target_box['y'] - target_box['height'] / 2) < 1.5
+        expect(page.locator('.vpdu-connection path')).not_to_have_attribute('stroke-dasharray', '6 4')
+        record("A real outlet cable ends at the correct full-depth server on the opposite rack face")
 
         expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
         light_fill = page.locator(".vpdu-native rect.slot").first.evaluate("el => getComputedStyle(el).fill")
@@ -105,6 +116,19 @@ with sync_playwright() as p:
         assert native_fingerprint(page.locator(".rack_elevation > svg").nth(1)) == dark_native
         page.goto(BASE + fixture["elevation"])
         expect(page.locator(".vpdu-native > svg")).to_be_visible()
+
+        line = page.locator('.vpdu-connection path')
+        line.scroll_into_view_if_needed()
+        hit = line.evaluate("""el => {
+            const p = el.getPointAtLength(el.getTotalLength() / 2);
+            const screen = new DOMPoint(p.x, p.y).matrixTransform(el.getScreenCTM());
+            return {x: screen.x, y: screen.y};
+        }""")
+        page.mouse.click(hit['x'], hit['y'])
+        page.wait_for_url(BASE + fixture['cable_url'])
+        record("Clicking the connection line opens its native cable details")
+        page.goto(BASE + fixture['elevation'])
+        expect(page.locator('.vpdu-native > svg')).to_be_visible()
 
         # Outlet links now occupy the card body; the heading opens the device.
         page.locator('.vpdu-scene a[aria-label="PDU-L1"] .vpdu-heading').click()
@@ -181,9 +205,10 @@ with sync_playwright() as p:
         reader.goto(BASE + fixture["elevation"])
         expect(reader.locator('.vpdu-native > svg')).to_be_visible()
         expect(reader.locator('.vpdu-pdu > a:not(.vpdu-outlet)')).to_have_count(1)
-        for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Outlet-13", "Compute-01"):
+        for secret in ("PDU-L2", "PDU-R1", "PDU-R2", "Outlet-13", "Server-019"):
             assert secret not in reader.content()
         expect(reader.get_by_role("link", name="Add vertical device", exact=True)).to_have_count(0)
+        expect(reader.locator('.vpdu-connection')).to_have_count(0)
         expect(reader.locator("tbody tr td").nth(3)).to_have_text("2 / 0")
         reader.screenshot(path=str(OUTPUT / "rack-restricted.png"), full_page=True)
         record("Restricted user sees only permitted device/outlets and no edit controls")

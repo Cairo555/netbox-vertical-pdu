@@ -4,9 +4,10 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
-from dcim.models import Device, PowerOutlet, Rack
+from dcim.models import Cable, Device, PowerOutlet, PowerPort, Rack
 from netbox.views import generic
 from netbox.config import get_config
 from dcim.constants import RACK_ELEVATION_DEFAULT_LEGEND_WIDTH, RACK_ELEVATION_DEFAULT_MARGIN_WIDTH, RACK_ELEVATION_BORDER_WIDTH
@@ -21,6 +22,37 @@ def visible_placements(user, rack):
     return VerticalPlacement.objects.restrict(user, "view").filter(
         rack=rack, device_id__in=Device.objects.restrict(user, "view").values("pk")
     ).select_related("device__device_type", "rack")
+
+
+def visible_connections(user, rack, face, outlets):
+    """Direct outlet-to-power-port links, with independent object permissions.
+
+    NetBox's peer resolver also handles profiled cables; never infer a link
+    merely because two terminations share a cable or an outlet is marked used.
+    """
+    cabled = [o for group in outlets.values() for o in group if o.cable_id]
+    cables = Cable.objects.restrict(user, "view").filter(pk__in=[o.cable_id for o in cabled]).in_bulk()
+    devices = Device.objects.restrict(user, "view").filter(
+        rack=rack, position__gt=0, device_type__u_height__gt=0,
+    ).filter(Q(face=face) | Q(device_type__is_full_depth=True))
+    ports = PowerPort.objects.restrict(user, "view").filter(
+        cable_id__in=cables, device_id__in=devices.values("pk"),
+    ).select_related("device__device_type").in_bulk()
+    result = defaultdict(list)
+    for outlet in cabled:
+        if outlet.cable_id not in cables:
+            continue
+        cable = cables[outlet.cable_id]
+        for peer in outlet.link_peers:
+            if not isinstance(peer, PowerPort) or peer.pk not in ports:
+                continue
+            port = ports[peer.pk]
+            result[outlet.pk].append({
+                "device": port.device, "url": cable.get_absolute_url(),
+                "label": f"{outlet.device} / {outlet.name} → {port.device} / {port.name} ({cable.get_status_display()})",
+                "planned": cable.status != "connected",
+            })
+    return result
 
 
 @register_model_view(Rack, "vertical_pdu", path="enhanced-elevation")
@@ -44,7 +76,7 @@ class EnhancedRackView(generic.ObjectView):
             except ValueError:
                 invalid.append(p)
         outlets = defaultdict(list)
-        for outlet in PowerOutlet.objects.restrict(request.user, "view").filter(device_id__in=[p.device_id for p in placements]).order_by("name", "pk"):
+        for outlet in PowerOutlet.objects.restrict(request.user, "view").filter(device_id__in=[p.device_id for p in placements]).select_related("device", "cable").order_by("name", "pk"):
             outlets[outlet.device_id].append(outlet)
         change_ids = set(VerticalPlacement.objects.restrict(request.user, "change").filter(rack=instance).values_list("pk", flat=True))
         delete_ids = set(VerticalPlacement.objects.restrict(request.user, "delete").filter(rack=instance).values_list("pk", flat=True))
@@ -58,6 +90,7 @@ class EnhancedRackView(generic.ObjectView):
                          "invalid": p in invalid})
         config = get_config()
         scene = build_scene(instance, valid, outlets,
+                            connections=visible_connections(request.user, instance, face, outlets),
                             unit_height=config.RACK_ELEVATION_DEFAULT_UNIT_HEIGHT,
                             unit_width=config.RACK_ELEVATION_DEFAULT_UNIT_WIDTH,
                             legend_width=RACK_ELEVATION_DEFAULT_LEGEND_WIDTH,

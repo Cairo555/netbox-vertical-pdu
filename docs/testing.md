@@ -2,11 +2,11 @@
 
 ## Actual execution status
 
-The 15 framework-independent tests were executed successfully locally. Package construction, packaged assets, the exact Docker image build and NetBox integration are checked by CI; consult the linked run for the tested commit and its actual conclusion:
+The 18 framework-independent tests were executed successfully locally. Package construction, packaged assets, the exact Docker image build and NetBox integration are checked by CI; consult the linked run for the tested commit and its actual conclusion:
 
 [Development-branch test runs](https://github.com/Cairo555/netbox-vertical-pdu/actions/workflows/tests.yml?query=branch%3Adev%2Fvertical-pdu) · [Review and validation summary](https://github.com/Cairo555/netbox-vertical-pdu/pull/1)
 
-The automated suite contains 15 unit tests and 22 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
+The automated suite contains 18 unit tests and 29 NetBox integration tests, plus a real Docker/Chromium smoke job. A configured workflow is not evidence that it passed: use the completed run's conclusion and logs. Browser screenshots are retained as `docker-browser-evidence` for 14 days for visual review. No production installation is performed.
 
 ## Local unit tests
 
@@ -42,6 +42,8 @@ python netbox/manage.py test netbox_vertical_pdu.tests --no-input --verbosity 2
 Never use a production database. The supplied configuration is test-only.
 
 ## Docker startup and browser checks
+
+Cable-line regression checks cover both rack sides, custom/descending numbering and half-U geometry, actual direct cable resolution, independent cable/port/device/outlet permissions, other racks/faces and mark-connected without a cable. Chromium verifies the endpoint at the edge/center of the correct native server rectangle and clicks the line to open its native cable page.
 
 The Docker job starts the exact 4.7.5/5.1.2 image using the real entrypoint and web server, plus a worker, PostgreSQL and separate Redis task/cache services. It waits for health checks, seeds an empty test database, then runs Chromium against the live web service. The stack is removed afterward; it has no production credentials or external volumes and its port is bound only to loopback.
 

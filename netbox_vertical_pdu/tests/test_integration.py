@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
-from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, PowerOutlet, Rack, Site
+from dcim.models import Cable, Device, DeviceRole, DeviceType, Manufacturer, PowerOutlet, PowerPort, Rack, Site
 from users.models import ObjectPermission
 
 from netbox_vertical_pdu.models import VerticalPlacement
@@ -231,3 +231,71 @@ class IntegrationTests(TestCase):
         for outlet in outlets:
             self.assertContains(response, f'href="{outlet.get_absolute_url()}"')
         self.assertNotContains(response, "more in table")
+
+    def connected_server(self):
+        dtype = DeviceType.objects.create(manufacturer=self.dtype.manufacturer, model="Server", slug="server",
+                                          u_height=2, is_full_depth=True)
+        device = Device.objects.create(name="Server-019", site=self.site, rack=self.rack,
+                                       device_type=dtype, role=self.role, position=25, face="front")
+        port = PowerPort.objects.create(device=device, name="PSU-1")
+        cable = Cable(a_terminations=[self.free], b_terminations=[port], status="connected")
+        cable.full_clean()
+        cable.save()
+        return device, port, cable
+
+    def test_real_connection_is_drawn_and_linked_to_cable(self):
+        device, port, cable = self.connected_server()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url())
+        lines = response.context["scene"]["connections"]
+        self.assertEqual(len(lines), 1)
+        self.assertIn("Server-019 / PSU-1", lines[0]["label"])
+        self.assertEqual(lines[0]["url"], cable.get_absolute_url())
+        self.assertContains(response, 'class="vpdu-connection"')
+
+    def test_cable_permission_required_for_connection(self):
+        device, port, cable = self.connected_server()
+        self.viewer()
+        self.grant(Device, ["view"], {"pk": device.pk})
+        self.grant(PowerPort, ["view"], {"pk": port.pk})
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+        self.grant(Cable, ["view"], {"pk": cable.pk})
+        self.assertEqual(len(self.client.get(self.url()).context["scene"]["connections"]), 1)
+
+    def test_hidden_power_port_has_no_connection_line(self):
+        device, port, cable = self.connected_server()
+        self.viewer()
+        self.grant(Device, ["view"], {"pk": device.pk})
+        self.grant(Cable, ["view"], {"pk": cable.pk})
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+
+    def test_hidden_destination_device_has_no_connection_line(self):
+        device, port, cable = self.connected_server()
+        self.viewer()
+        self.grant(PowerPort, ["view"], {"pk": port.pk})
+        self.grant(Cable, ["view"], {"pk": cable.pk})
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+
+    def test_hidden_outlet_has_no_connection_line(self):
+        device, port, cable = self.connected_server()
+        for model in (Rack, Device, VerticalPlacement, PowerPort, Cable):
+            self.grant(model, ["view"])
+        self.grant(PowerOutlet, ["view"], {"pk": self.used.pk})
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+
+    def test_other_rack_or_unrendered_face_has_no_line(self):
+        device, port, cable = self.connected_server()
+        self.client.force_login(self.admin)
+        device.device_type.is_full_depth = False
+        device.device_type.save()
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+        device.device_type.is_full_depth = True
+        device.device_type.save()
+        device.rack = self.other_rack
+        device.save()
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])
+
+    def test_mark_connected_does_not_invent_cable_line(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(self.url()).context["scene"]["connections"], [])

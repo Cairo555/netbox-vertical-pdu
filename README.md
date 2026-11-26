@@ -2,7 +2,7 @@
 
 Native, independent NetBox plugin adding an **Enhanced Rack Elevation** tab to racks. No NetBox core modifications or other visualization plugins required.
 
-Version 0.1.1 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
+Version 0.2.0 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.2**. Only 4.7.5 is accepted until other versions have been tested. See [actual test status](docs/testing.md).
 
 ## Features
 
@@ -12,6 +12,7 @@ Version 0.1.1 targets **NetBox Community 4.7.5**, including **NetBox Docker 5.1.
 - Separate front/rear views; up to 16 lanes per side, with multiple non-overlapping devices per lane.
 - Physical height and bottom offset in U, to two decimal places (1 U = 44.45 mm). These do not consume rack units.
 - Existing NetBox Power Outlets: cabled or marked-connected = occupied; otherwise free. This is connection occupancy, not measured power.
+- Direct power cable lines from an outlet row to the edge of its connected rack-mounted server. Hover for both endpoint names; click for native cable details. Non-connected cable statuses use dashed lines.
 - Theme-aware light/dark colors, keyboard links, text outlet status and a scrollable wide elevation.
 - Object permissions for racks, devices, placements and outlets, including constrained add/change permissions.
 - Own migration-backed placement model; existing devices, outlets and cables remain authoritative.
@@ -42,6 +43,7 @@ Grant through NetBox's object-permission UI (constraints are supported):
 | --- | --- |
 | Read elevation | `dcim.view_rack`, `dcim.view_device`, `netbox_vertical_pdu.view_verticalplacement` |
 | See outlet status | `dcim.view_poweroutlet` |
+| See cable lines | Above read permissions plus `dcim.view_cable`, `dcim.view_powerport`, and visibility of the destination device |
 | Add placements | Above read permissions plus `netbox_vertical_pdu.add_verticalplacement` |
 | Edit/remove placements | Above read permissions plus `change_verticalplacement` / `delete_verticalplacement` on the plugin model |
 
@@ -52,6 +54,6 @@ Placement permissions authorize plugin metadata changes, not changes to the unde
 - [NetBox Docker installation](docs/docker.md)
 - [Tests and validation status](docs/testing.md)
 
-The existing rack tab remains available. PDU sockets are schematic; cable routes, power measurements and redundancy analysis are outside this release. Native rack device images and reservations remain managed by NetBox.
+The existing rack tab remains available. PDU sockets and cable lines are schematic, not physical routing. Lines require an actual direct cable to a visible Power Port on a server rendered on the selected rack face (including full-depth devices). Mark-connected without a cable, remote-rack devices, hidden endpoints and indirect paths through other equipment do not produce lines. Power measurements and redundancy analysis are outside this release. Native rack device images and reservations remain managed by NetBox.
 
 License: Apache-2.0.

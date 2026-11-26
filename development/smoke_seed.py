@@ -30,7 +30,7 @@ with transaction.atomic():
     def device(name, dtype=vertical_type, target=rack, **kwargs):
         return Device.objects.create(name=name, device_type=dtype, site=site, rack=target, role=role, **kwargs)
 
-    compute = device("Compute-01", server_type, position=4, face="rear")
+    compute = device("Server-019", server_type, position=25, face="front")
     device("Compute-02", server_type, position=10, face="front")
     device("Edge-switch", server_type, position=36, face="rear")
     device("Half-U-shelf", half_type, position=Decimal("20.5"), face="rear")
@@ -49,15 +49,15 @@ with transaction.atomic():
         p.full_clean()
         p.save()
         placements.append(p)
-        outlets = [PowerOutlet.objects.create(device=pdu, name=f"Outlet-{i:02}", type="iec-60320-c13", mark_connected=i in (1, 4)) for i in range(1, 13)]
+        outlets = [PowerOutlet.objects.create(device=pdu, name=f"Outlet-{i:02}", type="iec-60320-c13", mark_connected=i in (2, 4)) for i in range(1, 13)]
         if name == "PDU-L1":
             first_outlets = outlets
             port = PowerPort.objects.create(device=compute, name="PSU-1", type="iec-60320-c14")
-            cable = Cable(a_terminations=[outlets[1]], b_terminations=[port], status="connected")
+            cable = Cable(a_terminations=[outlets[0]], b_terminations=[port], status="connected")
             cable.full_clean()
             cable.save()
-            outlets[1].refresh_from_db()
-            assert outlets[1].cable_id == cable.pk
+            outlets[0].refresh_from_db()
+            assert outlets[0].cable_id == cable.pk
     PowerOutlet.objects.create(device=pdus[0], name="Outlet-13", type="iec-60320-c13")
     front = device("PDU-F1")
     VerticalPlacement.objects.create(device=front, rack=rack, face="front", side="right", height_u=4, offset_u=18)
@@ -87,6 +87,7 @@ manifest = {
     "spare_url": spare.get_absolute_url(),
     "pdu_url": pdus[0].get_absolute_url(),
     "front_outlet_url": front_outlets[0].get_absolute_url(),
+    "cable_url": cable.get_absolute_url(),
 }
 Path("/tmp/vpdu-smoke.json").write_text(json.dumps(manifest), encoding="utf-8")
 print("Created isolated rack/browser fixtures.")

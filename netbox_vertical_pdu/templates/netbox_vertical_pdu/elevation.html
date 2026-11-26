@@ -1,13 +1,14 @@
 {% extends 'dcim/rack/base.html' %}
 {% load static l10n %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'netbox_vertical_pdu/elevation.css' %}">
+<link rel="stylesheet" href="{% static 'netbox_vertical_pdu/elevation-v0.2.0.css' %}">
 <div class="d-flex flex-wrap gap-2 mb-3">
   <a class="btn {% if face == 'front' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?face=front">Front</a>
   <a class="btn {% if face == 'rear' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?face=rear">Rear</a>
   {% if can_add %}<a class="btn btn-success" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_add' rack_pk=object.pk %}">Add vertical device</a>{% endif %}
 </div>
 <p>All visible power outlets run from top to bottom. Click an outlet to view or manage its cable in NetBox. Expanded cards use a bracket to mark the actual mounting height.</p>
+<p>Orange lines connect outlets to visible server power ports in this rack. Click a line for cable details. Dashed lines indicate a cable not marked Connected.</p>
 <p><span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-used" x="1" y="1" width="14" height="12" rx="2"/></svg> Occupied</span> <span class="vpdu-key"><svg width="16" height="14" aria-hidden="true"><rect class="vpdu-free" x="1" y="1" width="14" height="12" rx="2"/></svg> Free</span> — Occupied means cabled or marked connected; it does not indicate power consumption.</p>
 <div class="vpdu-scroll p-3">
 {% localize off %}
@@ -53,6 +54,17 @@
     </div>
   </div>
 </div>
+{% if scene.connections %}
+<svg class="vpdu-connections" xmlns="http://www.w3.org/2000/svg" width="{{ scene.width }}" height="{{ scene.height }}" viewBox="0 0 {{ scene.width }} {{ scene.height }}" aria-label="Power cable connections">
+  {% for link in scene.connections %}
+  <a class="vpdu-connection" href="{{ link.url }}" aria-label="{{ link.label }}">
+    <title>{{ link.label }}</title>
+    <path d="{{ link.path }}"{% if link.planned %} stroke-dasharray="6 4"{% endif %}/>
+    <circle cx="{{ link.end_x }}" cy="{{ link.end_y }}" r="3"/>
+  </a>
+  {% endfor %}
+</svg>
+{% endif %}
 </div>
 {% endlocalize %}
 </div>

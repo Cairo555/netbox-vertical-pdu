@@ -37,7 +37,7 @@ def outlet_sort_key(outlet):
                  for part in re.split(r"(\d+)", outlet.name))
 
 
-def build_scene(rack, placements, outlets, *, unit_height=UNIT, unit_width=RACK_WIDTH,
+def build_scene(rack, placements, outlets, *, connections=None, unit_height=UNIT, unit_width=RACK_WIDTH,
                 legend_width=30, margin_width=15, border_width=2):
     """Accept only permission-filtered input; never query relations for extra objects."""
     left = max((p.lane for p in placements if p.side == "left"), default=0)
@@ -52,7 +52,7 @@ def build_scene(rack, placements, outlets, *, unit_height=UNIT, unit_width=RACK_
              "native_x": native_x, "native_y": TOP - border_width,
              "native_width": native_width, "unit_height": unit_height, "unit_width": unit_width,
              "rack_label_x": rack_x + unit_width / 2,
-             "pdus": [], "side_labels": []}
+             "pdus": [], "side_labels": [], "connections": []}
     for side, count in (("left", left), ("right", right)):
         for lane in range(1, count + 1):
             x = native_x - lane * LANE_WIDTH if side == "left" else right_x + (lane - 1) * LANE_WIDTH
@@ -78,7 +78,7 @@ def build_scene(rack, placements, outlets, *, unit_height=UNIT, unit_width=RACK_
             kind = {"iec-60320-c13": "C13", "iec-60320-c19": "C19"}.get(getattr(outlet, "type", ""), "Outlet")
             points.append({"name": outlet.name, "short_name": outlet.name if len(outlet.name) <= 11 else outlet.name[:10] + "…",
                            "occupied": occupied(outlet), "kind": kind, "iec": kind in ("C13", "C19"),
-                           "url": outlet.get_absolute_url(),
+                           "url": outlet.get_absolute_url(), "id": getattr(outlet, "pk", None),
                            "x": x + 14, "y": round(display_y + header + (i + 0.5) * spacing - 12, 4)})
         marker = ""
         if expanded or display_y != rect["y"]:
@@ -92,4 +92,29 @@ def build_scene(rack, placements, outlets, *, unit_height=UNIT, unit_width=RACK_
                               "expanded": expanded, "marker": marker,
                               "physical_y": rect["y"], "physical_height": rect["height"],
                               "y": display_y, "height": display_height, "outlets": points})
+    for row in scene["pdus"]:
+        side = row["placement"].side
+        for point in row["outlets"]:
+            for link in (connections or {}).get(point["id"], []):
+                device = link["device"]
+                height = device.device_type.u_height
+                offset = device.position - rack.starting_unit
+                if offset < 0 or height <= 0 or offset + height > rack.u_height:
+                    continue
+                # Match the native renderer's pixel rounding, including half-U
+                # and descending/custom-numbered racks.
+                if rack.desc_units:
+                    top = TOP + int(offset * unit_height)
+                else:
+                    top = TOP + int((rack.u_height - offset) * unit_height) - int(height * unit_height)
+                end_y = top + int(height * unit_height) / 2
+                start_y = point["y"] + 12
+                start_x = row["x"] + 130 if side == "left" else row["x"]
+                end_x = rack_x + 6 if side == "left" else rack_x + unit_width - 6
+                trunk_x = native_x - 6 if side == "left" else native_x + native_width + 4
+                scene["connections"].append({
+                    "path": f"M{start_x} {start_y}H{trunk_x}V{end_y}H{end_x}",
+                    "end_x": end_x, "end_y": end_y,
+                    "url": link["url"], "label": link["label"], "planned": link["planned"],
+                })
     return scene
