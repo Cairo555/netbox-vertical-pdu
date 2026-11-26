@@ -1,0 +1,7 @@
+{% extends 'dcim/rack/base.html' %}
+{% block content %}
+<h2>Remove vertical placement</h2>
+<p>Remove the placement of {{ placement.device }}? The device, outlets and cables will be kept.</p>
+<form method="post">{% csrf_token %}<button type="submit" class="btn btn-danger">Remove placement</button>
+<a class="btn btn-outline-secondary" href="{{ placement.get_absolute_url }}">Cancel</a></form>
+{% endblock %}

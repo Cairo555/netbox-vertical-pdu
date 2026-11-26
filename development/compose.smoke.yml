@@ -1,0 +1,68 @@
+# Disposable test stack only. No external volumes or production services.
+services:
+  netbox: &netbox
+    image: netbox-vertical-pdu:test
+    user: "netbox:root"
+    environment: &environment
+      VPDU_SMOKE_TEST: "1"
+      DB_HOST: postgres
+      DB_NAME: netbox
+      DB_USER: netbox
+      DB_PASSWORD: smoke-test-only
+      REDIS_HOST: redis
+      REDIS_PASSWORD: smoke-test-only
+      REDIS_CACHE_HOST: redis-cache
+      REDIS_CACHE_PASSWORD: smoke-test-only
+      SECRET_KEY: disposable-smoke-test-only-secret-key-012345678901234567890123456789
+      API_TOKEN_PEPPER_1: disposable-smoke-test-only-pepper-012345678901234567890123456789
+      SKIP_SUPERUSER: "true"
+      ALLOWED_HOSTS: "localhost 127.0.0.1"
+      GRANIAN_WORKERS: "2"
+    ports: ["127.0.0.1:8000:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/netbox/health.sh"]
+      interval: 5s
+      timeout: 5s
+      start_period: 600s
+      retries: 6
+  netbox-worker:
+    <<: *netbox
+    ports: []
+    depends_on:
+      netbox:
+        condition: service_healthy
+    command: ["/opt/netbox/venv/bin/python", "/opt/netbox/netbox/manage.py", "rqworker"]
+    healthcheck:
+      test: ["CMD-SHELL", "ps -aux | grep -v grep | grep -q rqworker"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 6
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: netbox
+      POSTGRES_PASSWORD: smoke-test-only
+      POSTGRES_DB: netbox
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netbox -d netbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis: &redis
+    image: valkey/valkey:9.1-alpine
+    command: ["valkey-server", "--requirepass", "smoke-test-only"]
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli --pass smoke-test-only ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis-cache:
+    <<: *redis

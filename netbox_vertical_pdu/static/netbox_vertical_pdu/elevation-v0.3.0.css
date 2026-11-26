@@ -1,0 +1,31 @@
+.vpdu-scroll { overflow-x: auto; }
+.vpdu-scene { position: relative; flex-shrink: 0; margin-inline: auto; }
+.vpdu-scene { --vpdu-highlight-color: #006be6; }
+[data-bs-theme="dark"] .vpdu-scene { --vpdu-highlight-color: #72b7ff; }
+.vpdu-has-highlight .vpdu-connection:not(.vpdu-highlight) { opacity: .18; }
+.vpdu-scene .vpdu-connection.vpdu-highlight path { stroke: var(--vpdu-highlight-color); stroke-width: 4.5; }
+.vpdu-highlight-overlay { pointer-events: none; }
+.vpdu-highlight-overlay path { fill: none; stroke: var(--vpdu-highlight-color); stroke-width: 4.5; stroke-linejoin: round; pointer-events: none; }
+.vpdu-highlight-overlay circle { fill: var(--vpdu-highlight-color); stroke: none; pointer-events: none; }
+.vpdu-scene .vpdu-outlet.vpdu-highlight .vpdu-socket,
+.vpdu-native a.vpdu-highlight > rect.slot { stroke: var(--vpdu-highlight-color); stroke-width: 3.5; }
+.vpdu-native { position: absolute; }
+.vpdu-connections { position: absolute; inset: 0; z-index: 2; background: transparent; pointer-events: none; }
+.vpdu-connection path { fill: none; stroke: #d97706; stroke-width: 2.5; stroke-linejoin: round; pointer-events: stroke; }
+.vpdu-connection circle { fill: #d97706; stroke: none; }
+.vpdu-connection:hover path, .vpdu-connection:focus path { stroke-width: 4; }
+.vpdu-pdus, .vpdu-pdus svg { background: transparent; font: 12px system-ui, sans-serif; }
+.vpdu-pdus text { text-anchor: start; dominant-baseline: auto; }
+.vpdu-pdus text[text-anchor="middle"] { text-anchor: middle; }
+.vpdu-device { fill: var(--tblr-bg-surface-secondary, #e9ecef); stroke: var(--tblr-primary, #066fd1); stroke-width: 2; }
+.vpdu-text { fill: var(--tblr-body-color, #222); }
+.vpdu-heading { font-weight: 600; }
+.vpdu-summary, .vpdu-outlet-status { font-size: 9px; }
+.vpdu-outlet-name { font-size: 10px; font-weight: 600; }
+.vpdu-socket-slots { fill: var(--tblr-body-color, #222); }
+.vpdu-outlet-hitbox { fill: transparent; stroke: none; pointer-events: all; }
+.vpdu-outlet:hover > .vpdu-socket, .vpdu-outlet:focus > .vpdu-socket { stroke: var(--tblr-primary, #066fd1); stroke-width: 3; }
+.vpdu-used { fill: #d97706; stroke: #8a4400; color: var(--tblr-body-color, #222); }
+.vpdu-free { fill: var(--tblr-bg-surface, #fff); stroke: #198754; stroke-width: 2; color: var(--tblr-body-color, #222); }
+.vpdu-key { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .5rem; border: 1px solid var(--tblr-border-color, #ccc); }
+.vpdu-scene a:hover .vpdu-device, .vpdu-scene a:focus .vpdu-device { stroke: var(--tblr-body-color, #222); stroke-width: 3; }
