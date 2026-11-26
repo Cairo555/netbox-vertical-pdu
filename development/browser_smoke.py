@@ -86,15 +86,18 @@ with sync_playwright() as p:
         expect(row.get_by_role("link", name="Server-019", exact=True)).to_be_visible()
         expect(row.get_by_role("link", name="Server-018", exact=True)).to_be_visible()
         expect(row.get_by_role("link", name="PSU-1", exact=True)).to_have_count(2)
-        page.screenshot(path=str(OUTPUT / "outlet-details.png"), full_page=True)
+        row.screenshot(path=str(OUTPUT / "outlet-details.png"))
         row.locator("summary").click()
         for pdu in page.locator('.vpdu-pdu').all():
             marker = pdu.locator('.vpdu-mount')
             if marker.count():
                 assert 'L' not in marker.get_attribute('d')
-                marker_box = marker.bounding_box()
-                card_box = pdu.locator('.vpdu-strip').bounding_box()
-                assert marker_box['x'] + marker_box['width'] < card_box['x'] or marker_box['x'] > card_box['x'] + card_box['width']
+                # Compare SVG coordinates, independent of viewport scrollbars
+                # appearing/disappearing while the details element collapses.
+                marker_box = marker.evaluate('(el) => { const b = el.getBBox(); return {x:b.x, width:b.width}; }')
+                card = pdu.locator('.vpdu-strip')
+                card_x, card_width = float(card.get_attribute('x')), float(card.get_attribute('width'))
+                assert marker_box['x'] + marker_box['width'] < card_x or marker_box['x'] > card_x + card_width, (marker_box, card_x, card_width)
         record("Outlet details show connected devices and ports; physical brackets stay outside cards without diagonal lines")
 
         expect(page.locator('.vpdu-connection')).to_have_count(3)
