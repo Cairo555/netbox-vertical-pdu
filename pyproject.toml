@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-vertical-pdu"
-version = "0.3.0"
+version = "0.3.1"
 description = "Native NetBox rack elevations with vertical 0U devices"
 requires-python = ">=3.12"
 license = "Apache-2.0"

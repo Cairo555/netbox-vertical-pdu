@@ -82,6 +82,21 @@ with sync_playwright() as p:
         assert page.locator(".vpdu-scene rect.vpdu-used").count() == 10
         record("Two stacked PDUs per side, vertical labeled sockets, half-U equipment and outlet occupancy")
 
+        row.locator("summary").click()
+        expect(row.get_by_role("link", name="Server-019", exact=True)).to_be_visible()
+        expect(row.get_by_role("link", name="Server-018", exact=True)).to_be_visible()
+        expect(row.get_by_role("link", name="PSU-1", exact=True)).to_have_count(2)
+        page.screenshot(path=str(OUTPUT / "outlet-details.png"), full_page=True)
+        row.locator("summary").click()
+        for pdu in page.locator('.vpdu-pdu').all():
+            marker = pdu.locator('.vpdu-mount')
+            if marker.count():
+                assert 'L' not in marker.get_attribute('d')
+                marker_box = marker.bounding_box()
+                card_box = pdu.locator('.vpdu-strip').bounding_box()
+                assert marker_box['x'] + marker_box['width'] < card_box['x'] or marker_box['x'] > card_box['x'] + card_box['width']
+        record("Outlet details show connected devices and ports; physical brackets stay outside cards without diagonal lines")
+
         expect(page.locator('.vpdu-connection')).to_have_count(3)
         connection1 = page.locator(f'.vpdu-connection[data-outlet-id="{fixture["outlet1_id"]}"]')
         connection2 = page.locator(f'.vpdu-connection[data-outlet-id="{fixture["outlet2_id"]}"]')

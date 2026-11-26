@@ -77,7 +77,7 @@
     <td><a href="{{ row.placement.device.get_absolute_url }}">{{ row.placement.device }}</a>{% if row.invalid %}<div class="text-warning">Placement no longer matches rack/device dimensions. Edit or remove it.</div>{% endif %}</td>
     <td>{{ row.placement.get_side_display }} / {{ row.placement.lane }}</td><td>{{ row.placement.offset_u }} / {{ row.placement.height_u }}</td>
     <td>{{ row.used }} / {{ row.free }}</td>
-    <td><details><summary>Outlet details</summary><ul>{% for outlet in row.outlets %}<li><a href="{{ outlet.url }}">{{ outlet.name }}</a> — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}</li>{% empty %}<li>No visible outlets.</li>{% endfor %}</ul></details></td>
+    <td><details><summary>Outlet details</summary><ul>{% for outlet in row.outlets %}<li><a href="{{ outlet.url }}">{{ outlet.name }}</a> — {% if outlet.occupied %}Occupied{% else %}Free{% endif %}{% for link in outlet.connections %}<div>→ <a href="{{ link.device_url }}">{{ link.device }}</a> / <a href="{{ link.port_url }}">{{ link.port.name }}</a> · <a href="{{ link.url }}">Cable</a></div>{% empty %}{% if outlet.occupied %}<div class="text-muted">No visible direct connection.</div>{% endif %}{% endfor %}</li>{% empty %}<li>No visible outlets.</li>{% endfor %}</ul></details></td>
     <td>{% if row.can_change %}<a href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_edit' rack_pk=object.pk pk=row.placement.pk %}">Edit</a>{% endif %}
     {% if row.can_delete %}<a class="ms-2" href="{% url 'plugins:netbox_vertical_pdu:verticalplacement_delete' rack_pk=object.pk pk=row.placement.pk %}">Remove</a>{% endif %}</td>
   </tr>{% empty %}<tr><td colspan="6">No visible vertical placements on this face.</td></tr>{% endfor %}</tbody>

@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from dcim.models import Cable, Device, PowerOutlet, PowerPort, Rack
@@ -24,7 +23,7 @@ def visible_placements(user, rack):
     ).select_related("device__device_type", "rack")
 
 
-def visible_connections(user, rack, face, outlets):
+def visible_connections(user, outlets):
     """Direct outlet-to-power-port links, with independent object permissions.
 
     NetBox's peer resolver also handles profiled cables; never infer a link
@@ -32,9 +31,7 @@ def visible_connections(user, rack, face, outlets):
     """
     cabled = [o for group in outlets.values() for o in group if o.cable_id]
     cables = Cable.objects.restrict(user, "view").filter(pk__in=[o.cable_id for o in cabled]).in_bulk()
-    devices = Device.objects.restrict(user, "view").filter(
-        rack=rack, position__gt=0, device_type__u_height__gt=0,
-    ).filter(Q(face=face) | Q(device_type__is_full_depth=True))
+    devices = Device.objects.restrict(user, "view")
     ports = PowerPort.objects.restrict(user, "view").filter(
         cable_id__in=cables, device_id__in=devices.values("pk"),
     ).select_related("device__device_type").in_bulk()
@@ -50,6 +47,7 @@ def visible_connections(user, rack, face, outlets):
             result[outlet.pk].append({
                 "device": port.device, "url": cable.get_absolute_url(),
                 "device_url": port.device.get_absolute_url(),
+                "port": port, "port_url": port.get_absolute_url(),
                 "label": f"{outlet.device} / {outlet.name} → {port.device} / {port.name} ({cable.get_status_display()})",
                 "planned": cable.status != "connected",
             })
@@ -81,17 +79,28 @@ class EnhancedRackView(generic.ObjectView):
             outlets[outlet.device_id].append(outlet)
         change_ids = set(VerticalPlacement.objects.restrict(request.user, "change").filter(rack=instance).values_list("pk", flat=True))
         delete_ids = set(VerticalPlacement.objects.restrict(request.user, "delete").filter(rack=instance).values_list("pk", flat=True))
+        connections = visible_connections(request.user, outlets)
+        drawn_connections = {
+            outlet_id: [link for link in links if
+                        link["device"].rack_id == instance.pk and
+                        link["device"].position is not None and
+                        link["device"].position > 0 and
+                        link["device"].device_type.u_height > 0 and
+                        (link["device"].face == face or link["device"].device_type.is_full_depth)]
+            for outlet_id, links in connections.items()
+        }
         rows = []
         for p in placements:
             visible = sorted(outlets[p.device_id], key=outlet_sort_key)
             used = sum(occupied(o) for o in visible)
             rows.append({"placement": p, "used": used, "free": len(visible) - used,
-                         "outlets": [{"name": o.name, "occupied": occupied(o), "url": o.get_absolute_url()} for o in visible],
+                         "outlets": [{"name": o.name, "occupied": occupied(o), "url": o.get_absolute_url(),
+                                      "connections": connections.get(o.pk, [])} for o in visible],
                          "can_change": p.pk in change_ids, "can_delete": p.pk in delete_ids,
                          "invalid": p in invalid})
         config = get_config()
         scene = build_scene(instance, valid, outlets,
-                            connections=visible_connections(request.user, instance, face, outlets),
+                            connections=drawn_connections,
                             unit_height=config.RACK_ELEVATION_DEFAULT_UNIT_HEIGHT,
                             unit_width=config.RACK_ELEVATION_DEFAULT_UNIT_WIDTH,
                             legend_width=RACK_ELEVATION_DEFAULT_LEGEND_WIDTH,

@@ -82,6 +82,20 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(top["x"], bottom["x"])
         self.assertLess(top["y"] + top["height"], bottom["y"])
 
+    def test_resizing_back_restores_scene_with_external_brackets(self):
+        for side in ("left", "right"):
+            p = NS(side=side, lane=1, offset_u=D(20), height_u=D(12), device_id=1, device=NS(name="PDU"))
+            outlets = {1: [outlet(str(i), cable_id=None, mark_connected=False) for i in range(7)]}
+            before = self.scene(placements=[p], outlets=outlets)["pdus"][0]
+            p.height_u = D(18)
+            self.scene(placements=[p], outlets=outlets)
+            p.height_u = D(12)
+            after = self.scene(placements=[p], outlets=outlets)["pdus"][0]
+            self.assertEqual(before, after)
+            self.assertNotIn("L", after["marker"])
+            mx = after["x"] - 6 if side == "left" else after["x"] + 136
+            self.assertIn(f"M{mx} ", after["marker"])
+
     def test_outlets_follow_single_column_with_names_and_type(self):
         p = NS(side="left", lane=1, offset_u=D(0), height_u=D(24), device_id=1, device=NS(name="PDU"))
         outlets = [outlet(f"Outlet-{i:02}", type="iec-60320-c13", cable_id=None, mark_connected=i == 2) for i in range(1, 13)]

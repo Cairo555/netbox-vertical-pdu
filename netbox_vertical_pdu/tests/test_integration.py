@@ -255,6 +255,29 @@ class IntegrationTests(TestCase):
         self.assertEqual(lines[0]["device_url"], device.get_absolute_url())
         self.assertContains(response, f'data-device-url="{device.get_absolute_url()}"')
         self.assertContains(response, 'class="vpdu-connection"')
+        detail = next(o for row in response.context["rows"] for o in row["outlets"] if o["name"] == self.free.name)
+        self.assertEqual(detail["connections"][0]["port"], port)
+        self.assertContains(response, f'href="{port.get_absolute_url()}"')
+
+    def test_details_include_connections_outside_rendered_rack(self):
+        device, port, cable = self.connected_server()
+        device.rack = self.other_rack
+        device.save()
+        self.client.force_login(self.admin)
+        response = self.client.get(self.url())
+        self.assertEqual(response.context["scene"]["connections"], [])
+        self.assertContains(response, f'href="{device.get_absolute_url()}"')
+        self.assertContains(response, f'href="{port.get_absolute_url()}"')
+
+    def test_details_do_not_expose_hidden_connection_endpoints(self):
+        device, port, cable = self.connected_server()
+        self.viewer()
+        self.grant(Cable, ["view"], {"pk": cable.pk})
+        self.grant(PowerPort, ["view"], {"pk": port.pk})
+        response = self.client.get(self.url())
+        self.assertNotContains(response, "Server-019")
+        self.assertNotContains(response, f'href="{port.get_absolute_url()}"')
+        self.assertContains(response, "No visible direct connection.")
 
     def test_cable_permission_required_for_connection(self):
         device, port, cable = self.connected_server()

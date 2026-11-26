@@ -82,11 +82,10 @@ def build_scene(rack, placements, outlets, *, connections=None, unit_height=UNIT
                            "x": x + 14, "y": round(display_y + header + (i + 0.5) * spacing - 12, 4)})
         marker = ""
         if expanded or display_y != rect["y"]:
-            mx = x + 138 if p.side == "left" else x - 8
-            edge = x + 130 if p.side == "left" else x
+            # Keep physical size indicators outside the cable corridor.
+            mx = x - 6 if p.side == "left" else x + 136
             top, bottom = rect["y"], rect["y"] + rect["height"]
-            marker = (f"M{mx - 3} {top}h6 M{mx} {top}V{bottom} M{mx - 3} {bottom}h6 "
-                      f"M{mx} {(top + bottom) / 2}L{edge} {display_y + display_height / 2}")
+            marker = f"M{mx - 3} {top}h6 M{mx} {top}V{bottom} M{mx - 3} {bottom}h6"
         scene["pdus"].append({"placement": p, "device": p.device, "x": x,
                               "total": len(visible_outlets), "used": sum(occupied(o) for o in visible_outlets),
                               "expanded": expanded, "marker": marker,
